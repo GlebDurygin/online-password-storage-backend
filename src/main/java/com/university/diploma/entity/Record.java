@@ -3,8 +3,8 @@ package com.university.diploma.entity;
 import javax.persistence.*;
 import java.util.Date;
 
-@Entity
-@Table(name = "RECORD")
+@Entity(name = "diploma_Record")
+@Table(name = "DIPLOMA_RECORD")
 public class Record {
 
     @Id

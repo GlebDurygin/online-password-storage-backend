@@ -11,8 +11,8 @@ import javax.persistence.UniqueConstraint;
 import javax.persistence.Version;
 import java.util.Date;
 
-@Entity
-@Table(name = "USER", uniqueConstraints = {
+@Entity(name = "diploma_User")
+@Table(name = "DIPLOMA_USER", uniqueConstraints = {
         @UniqueConstraint(columnNames = {"USERNAME"})
 })
 public class User {

@@ -14,11 +14,17 @@ repositories {
 
 dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-web'
-	implementation 'javax.persistence:javax.persistence-api:2.2'
-	implementation 'org.projectlombok:lombok:1.18.8'
+	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+	implementation 'org.springframework.boot:spring-boot-starter-data-rest'
+
+	compile 'javax.persistence:javax.persistence-api:2.2'
+	compile 'org.projectlombok:lombok:1.18.8'
+
 	testImplementation('org.springframework.boot:spring-boot-starter-test') {
 		exclude group: 'org.junit.vintage', module: 'junit-vintage-engine'
 	}
+
+	runtimeOnly 'org.hsqldb:hsqldb:2.4.1'
 }
 
 test {
