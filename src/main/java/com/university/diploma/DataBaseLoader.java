@@ -12,14 +12,10 @@ import org.springframework.stereotype.Component;
 @Component
 public class DataBaseLoader implements ApplicationRunner {
 
-    protected UserHSQLRepository userRepository;
-    protected RecordHSQLRepository recordRepository;
-
     @Autowired
-    public DataBaseLoader(UserHSQLRepository userRepository, RecordHSQLRepository recordRepository) {
-        this.userRepository = userRepository;
-        this.recordRepository = recordRepository;
-    }
+    protected UserHSQLRepository userRepository;
+    @Autowired
+    protected RecordHSQLRepository recordRepository;
 
     @Override
     public void run(ApplicationArguments args) {

@@ -5,6 +5,8 @@ import com.university.diploma.entity.User;
 import com.university.diploma.repository.UserHSQLRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -58,5 +60,30 @@ public class UserDataService implements DataService<User> {
     @Override
     public List<User> findAll() {
         return container.findAll();
+    }
+
+    public boolean create(String username, String password, String keyword) {
+        User user = new User();
+        user.setUsername(username);
+        user.setPassword(password);
+        user.setKeyword(keyword);
+
+        User savedUser = userRepository.save(user);
+        container.addValue(savedUser.getId(), savedUser);
+        return true;
+    }
+
+    public Long findUser(String username, String password) {
+        Page<User> userPage = userRepository.findUserByUsernameAndPassword(username, password, PageRequest.of(0, 1));
+        if (userPage.get()
+                .findFirst()
+                .isPresent()) {
+            return userPage.get()
+                    .findFirst()
+                    .get()
+                    .getId();
+        } else {
+            return null;
+        }
     }
 }

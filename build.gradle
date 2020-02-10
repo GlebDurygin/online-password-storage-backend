@@ -1,7 +1,7 @@
 plugins {
-	id 'org.springframework.boot' version '2.2.4.RELEASE'
-	id 'io.spring.dependency-management' version '1.0.9.RELEASE'
-	id 'java'
+    id 'org.springframework.boot' version '2.2.4.RELEASE'
+    id 'io.spring.dependency-management' version '1.0.9.RELEASE'
+    id 'java'
 }
 
 group = 'com.university'
@@ -9,24 +9,25 @@ version = '0.0.1-SNAPSHOT'
 sourceCompatibility = '1.8'
 
 repositories {
-	mavenCentral()
+    mavenCentral()
 }
 
 dependencies {
-	implementation 'org.springframework.boot:spring-boot-starter-web'
-	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-	implementation 'org.springframework.boot:spring-boot-starter-data-rest'
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-data-rest'
 
-	compile 'javax.persistence:javax.persistence-api:2.2'
-	compile 'org.projectlombok:lombok:1.18.8'
+    compile 'javax.persistence:javax.persistence-api:2.2'
+    compile 'org.projectlombok:lombok:1.18.8'
+    compile 'org.springframework.boot:spring-boot-starter-thymeleaf'
 
-	testImplementation('org.springframework.boot:spring-boot-starter-test') {
-		exclude group: 'org.junit.vintage', module: 'junit-vintage-engine'
-	}
+    testImplementation('org.springframework.boot:spring-boot-starter-test') {
+        exclude group: 'org.junit.vintage', module: 'junit-vintage-engine'
+    }
 
-	runtimeOnly 'org.hsqldb:hsqldb:2.4.1'
+    runtimeOnly 'org.hsqldb:hsqldb:2.4.1'
 }
 
 test {
-	useJUnitPlatform()
+    useJUnitPlatform()
 }
