@@ -36,7 +36,7 @@ public class User {
 
     @Version
     @Column(name = "VERSION", nullable = false)
-    private int version = 1;
+    private int version;
 
     @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "CREATE_DATE", nullable = false)

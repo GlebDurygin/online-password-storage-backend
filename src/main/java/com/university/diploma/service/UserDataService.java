@@ -31,8 +31,9 @@ public class UserDataService implements DataService<User> {
 
     @Override
     public User create(User item) {
-        container.addValue(item.getId(), item);
-        return userRepository.save(item);
+        User savedUser = userRepository.save(item);
+        container.addValue(savedUser.getId(), savedUser);
+        return savedUser;
     }
 
     @Override

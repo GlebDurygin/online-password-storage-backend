@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Online Password Storage</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
+</head>
+<body th:align="center">
+<div th:include="header"></div>
+<div class="text-center jumbotron">
+    <h4>Record</h4>
+    <form method="post">
+        <div class="form-group">
+            <label for="header" class="col-sm-2 col-form-label">Header:</label>
+            <div class="col-sm-10">
+                <input class="form-control" id="header" name="header" th:value="${record.header}">
+            </div>
+        </div>
+        <div class="form-group">
+            <label for="data" class="col-sm-2 col-form-label">Data:</label>
+            <div class="col-sm-10">
+                <input class="form-control" id="data" name="data" th:value="${record.data}">
+            </div>
+        </div>
+        <div class="form-group">
+            <label for="description" class="col-sm-2 col-form-label">Description:</label>
+            <div class="col-sm-10">
+                <input class="form-control" id="description" name="description" th:value="${record.description}">
+            </div>
+        </div>
+        <div class="form-group">
+            <label for="user" class="col-sm-2 col-form-label">User:</label>
+            <div class="col-sm-10">
+                <input class="form-control" id="user" th:value="${record.user.username}">
+            </div>
+        </div>
+        <button type="submit" class="btn btn-outline-secondary">Submit</button>
+    </form>
+</div>
+</body>
+
+</html>

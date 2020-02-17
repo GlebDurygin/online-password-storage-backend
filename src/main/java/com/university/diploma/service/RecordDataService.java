@@ -2,9 +2,12 @@ package com.university.diploma.service;
 
 import com.university.diploma.container.PojoContainer;
 import com.university.diploma.entity.Record;
+import com.university.diploma.entity.User;
 import com.university.diploma.repository.RecordHSQLRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -29,8 +32,9 @@ public class RecordDataService implements DataService<Record> {
 
     @Override
     public Record create(Record item) {
-        container.addValue(item.getId(), item);
-        return recordRepository.save(item);
+        Record savedRecord = recordRepository.save(item);
+        container.addValue(savedRecord.getId(), savedRecord);
+        return savedRecord;
     }
 
     @Override
@@ -47,16 +51,77 @@ public class RecordDataService implements DataService<Record> {
 
     @Override
     public void remove(Long id) {
-        container.remove(id);
+        if (recordRepository.existsById(id)) {
+            recordRepository.deleteById(id);
+        }
     }
 
     @Override
     public void remove(Record item) {
-        container.remove(item.getId());
+        if (recordRepository.existsById(item.getId())) {
+            recordRepository.delete(item);
+        }
     }
 
     @Override
     public List<Record> findAll() {
         return container.findAll();
+    }
+
+    public Record create(User user) {
+        Record record = new Record();
+        record.setUser(user);
+        Record savedRecord = recordRepository.save(record);
+        container.addValue(savedRecord.getId(), savedRecord);
+        return savedRecord;
+    }
+
+    public Record createWithoutSaving(User user) {
+        Record record = new Record();
+        record.setUser(user);
+        return record;
+    }
+
+    public boolean create(String header, String data, String description, User user) {
+        Record record = new Record();
+        record.setHeader(header);
+        record.setData(data);
+        record.setDescription(description);
+        record.setUser(user);
+
+        Record savedRecord = recordRepository.save(record);
+        container.addValue(savedRecord.getId(), savedRecord);
+        return true;
+    }
+
+    public boolean update(Long recordId, String header, String data, String description, User user) {
+        Record record = findById(recordId);
+        if (record == null) {
+            record = new Record();
+        }
+        record.setHeader(header);
+        record.setData(data);
+        record.setDescription(description);
+        record.setUser(user);
+
+        update(record);
+        return true;
+    }
+
+    public List<Record> findByUser(User user) {
+        Page<Record> recordsPage = recordRepository.findRecordsByUser(user, PageRequest.of(0, 50));
+        return recordsPage.hasContent()
+                ? recordsPage.getContent()
+                : null;
+    }
+
+    public Record findByIdAndUser(User user, Long recordId) {
+        if (recordId == null) {
+            return createWithoutSaving(user);
+        }
+        Page<Record> recordsPage = recordRepository.findRecordByIdAndUser(recordId, user, PageRequest.of(0, 1));
+        return recordsPage.hasContent()
+                ? recordsPage.getContent().get(0)
+                : null;
     }
 }
