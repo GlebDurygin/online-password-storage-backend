@@ -9,5 +9,7 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface UserHSQLRepository extends PagingAndSortingRepository<User, Long> {
 
-    Page<User> findUserByUsernameAndPassword(String username, String password,  Pageable pageable);
+    Page<User> findUserByUsernameAndPassword(String username, String password, Pageable pageable);
+
+    Page<User> findUserByUsername(String username, Pageable pageable);
 }

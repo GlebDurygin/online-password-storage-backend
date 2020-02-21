@@ -9,6 +9,7 @@ import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
 import javax.persistence.UniqueConstraint;
 import javax.persistence.Version;
+import java.math.BigInteger;
 import java.util.Date;
 
 @Entity(name = "diploma_User")
@@ -30,6 +31,12 @@ public class User {
 
     @Column(name = "KEYWORD", length = 64)
     private String keyword;
+
+    @Column(name = "VERIFIER", length = 2048)
+    private String verifier;
+
+    @Column(name = "SALT")
+    private String salt;
 
     @Column(name = "BLOCKED", nullable = false)
     private boolean blocked = false;
@@ -89,6 +96,22 @@ public class User {
 
     public void setKeyword(String keyword) {
         this.keyword = keyword;
+    }
+
+    public String getVerifier() {
+        return verifier;
+    }
+
+    public void setVerifier(String verifier) {
+        this.verifier = verifier;
+    }
+
+    public String getSalt() {
+        return salt;
+    }
+
+    public void setSalt(String salt) {
+        this.salt = salt;
     }
 
     public boolean isBlocked() {

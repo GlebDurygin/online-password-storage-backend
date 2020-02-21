@@ -21,6 +21,11 @@ dependencies {
     compile 'org.projectlombok:lombok:1.18.8'
     compile 'org.springframework.boot:spring-boot-starter-thymeleaf'
 
+    compile "org.bouncycastle:bcprov-jdk16:1.46"
+    compile "org.bouncycastle:bcpg-jdk16:1.46"
+    compile "org.bouncycastle:bcmail-jdk16:1.46"
+    compile "org.bouncycastle:bctsp-jdk16:1.46"
+
     testImplementation('org.springframework.boot:spring-boot-starter-test') {
         exclude group: 'org.junit.vintage', module: 'junit-vintage-engine'
     }

@@ -1,6 +1,9 @@
 package com.university.diploma.service;
 
 import com.university.diploma.container.PojoContainer;
+import com.university.diploma.dto.UserSignInClientDto;
+import com.university.diploma.dto.UserSignInDBDto;
+import com.university.diploma.dto.UserSignUpDto;
 import com.university.diploma.entity.User;
 import com.university.diploma.repository.UserHSQLRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -74,6 +77,24 @@ public class UserDataService implements DataService<User> {
         return true;
     }
 
+    public boolean create(UserSignUpDto userDto) {
+        User user = new User();
+        user.setUsername(userDto.getUsername());
+        user.setPassword(userDto.getUsername());
+        user.setKeyword(userDto.getKeyword());
+        user.setVerifier(userDto.getVerifier());
+        user.setSalt(userDto.getSalt());
+
+        Page<User> userPage = userRepository.findUserByUsername(userDto.getUsername(), PageRequest.of(0, 1));
+        if (userPage.isEmpty()) {
+            User savedUser = userRepository.save(user);
+            container.addValue(savedUser.getId(), savedUser);
+            return true;
+        } else {
+            return false;
+        }
+    }
+
     public Long findUser(String username, String password) {
         Page<User> userPage = userRepository.findUserByUsernameAndPassword(username, password, PageRequest.of(0, 1));
         if (userPage.get()
@@ -85,6 +106,19 @@ public class UserDataService implements DataService<User> {
                     .getId();
         } else {
             return null;
+        }
+    }
+
+    public UserSignInDBDto findUserByClientDto(UserSignInClientDto clientDto) {
+        Page<User> userPage = userRepository.findUserByUsername(clientDto.getUsername(), PageRequest.of(0, 1));
+        if (userPage.isEmpty()) {
+            return null;
+        } else {
+            User user = userPage.get()
+                    .findFirst()
+                    .get();
+
+            return new UserSignInDBDto(user.getSalt(), user.getVerifier());
         }
     }
 }
