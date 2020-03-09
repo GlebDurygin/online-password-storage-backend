@@ -29,32 +29,32 @@ public class UserController {
 
     @GetMapping("/")
     public String redirectToSignIn(Model model) {
-        return "redirect:/signin";
+        return "redirect:/sign-in";
     }
 
-    @GetMapping("/signin")
+    @GetMapping("/sign-in")
     public String handleSignIn(Model model) {
-        return "signin";
+        return "sign-in";
     }
 
-    @GetMapping("/signup")
+    @GetMapping("/sign-up")
     public String handleSignUp(Model model) {
-        return "signup";
+        return "sign-up";
     }
 
-    @PostMapping("/signup")
+    @PostMapping("/sign-up")
     public String signUpSubmit(@RequestParam(name = "username") String username,
                                @RequestParam(name = "password") String password,
                                @RequestParam(name = "keyword") String keyword) {
         UserSignUpDto userDto = srpService.signUp(username, password, keyword);
         if (userDataService.create(userDto)) {
-            return "redirect:/signin";
+            return "redirect:/sign-in";
         } else {
-            return "signup";
+            return "sign-up";
         }
     }
 
-    @PostMapping("/signin")
+    @PostMapping("/sign-in")
     public String signIn(@RequestParam(name = "username") String username,
                          @RequestParam(name = "password") String password) {
         UserSignInClientDto clientDto = srpService.computeUsernameAndEmphaticKeyOnClient(username);
@@ -74,7 +74,7 @@ public class UserController {
                 return "redirect:/users/" + userId;
             }
         }
-        return "signin";
+        return "sign-in";
     }
 
     @GetMapping("/users/{userId}")
