@@ -13,8 +13,8 @@
             <li th:class="${#request.requestURI} == '/records' ? 'active':''"><a th:href="@{/records}">Records</a></li>
         </ul>
         <ul class="nav navbar-nav navbar-right">
-            <li th:class="${#request.requestURI} == '/signup' ? 'active':''"><a th:href="@{/signup}"><span class="glyphicon glyphicon-user"></span> Sign Up</a></li>
-            <li th:class="${#request.requestURI} == '/signin' ? 'active':''"><a th:href="@{/signin}"><span class="glyphicon glyphicon-log-in"></span> Sign In</a></li>
+            <li th:class="${#request.requestURI} == '/sign-up' ? 'active':''"><a th:href="@{/sign-up}"><span class="glyphicon glyphicon-user"></span> Sign Up</a></li>
+            <li th:class="${#request.requestURI} == '/sign-in' ? 'active':''"><a th:href="@{/sign-in}"><span class="glyphicon glyphicon-log-in"></span> Sign In</a></li>
         </ul>
     </div>
 </nav>
