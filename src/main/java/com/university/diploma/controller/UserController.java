@@ -5,16 +5,14 @@ import com.university.diploma.dto.UserSignInDBDto;
 import com.university.diploma.dto.UserSignInServerDto;
 import com.university.diploma.dto.UserSignUpDto;
 import com.university.diploma.entity.User;
+import com.university.diploma.form.SignUpForm;
 import com.university.diploma.service.RecordDataService;
 import com.university.diploma.service.SRPService;
 import com.university.diploma.service.UserDataService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.ModelAndView;
 
 @Controller
@@ -42,16 +40,16 @@ public class UserController {
         return "sign-up";
     }
 
-    @PostMapping("/sign-up")
-    public String signUpSubmit(@RequestParam(name = "username") String username,
-                               @RequestParam(name = "password") String password,
-                               @RequestParam(name = "keyword") String keyword) {
-        UserSignUpDto userDto = srpService.signUp(username, password, keyword);
+/*    @CrossOrigin(origins = "*")*/
+    @PostMapping(value = "/sign-up")
+    public String signUpSubmit(@RequestBody SignUpForm form) {
+        return "redirect:/sign-in";
+/*        UserSignUpDto userDto = srpService.signUp(username, password, keyword);
         if (userDataService.create(userDto)) {
             return "redirect:/sign-in";
         } else {
             return "sign-up";
-        }
+        }*/
     }
 
     @PostMapping("/sign-in")
