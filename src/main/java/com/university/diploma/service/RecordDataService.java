@@ -3,6 +3,7 @@ package com.university.diploma.service;
 import com.university.diploma.container.PojoContainer;
 import com.university.diploma.entity.Record;
 import com.university.diploma.entity.User;
+import com.university.diploma.form.RecordForm;
 import com.university.diploma.repository.RecordHSQLRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
@@ -82,26 +83,26 @@ public class RecordDataService implements DataService<Record> {
         return record;
     }
 
-    public boolean create(String header, String data, String description, User user) {
+    public Long create(RecordForm form, User user) {
         Record record = new Record();
-        record.setHeader(header);
-        record.setData(data);
-        record.setDescription(description);
+        record.setHeader(form.getHeader());
+        record.setData(form.getData());
+        record.setDescription(form.getDescription());
         record.setUser(user);
 
         Record savedRecord = recordRepository.save(record);
         container.addValue(savedRecord.getId(), savedRecord);
-        return true;
+        return savedRecord.getId();
     }
 
-    public boolean update(Long recordId, String header, String data, String description, User user) {
+    public boolean update(Long recordId, RecordForm form, User user) {
         Record record = findById(recordId);
         if (record == null) {
             record = new Record();
         }
-        record.setHeader(header);
-        record.setData(data);
-        record.setDescription(description);
+        record.setHeader(form.getHeader());
+        record.setData(form.getData());
+        record.setDescription(form.getDescription());
         record.setUser(user);
 
         update(record);

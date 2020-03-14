@@ -4,6 +4,8 @@ import com.university.diploma.dto.UserSignInClientDto;
 import com.university.diploma.dto.UserSignInDBDto;
 import com.university.diploma.dto.UserSignInServerDto;
 import com.university.diploma.dto.UserSignUpDto;
+import com.university.diploma.form.SignInForm;
+import com.university.diploma.form.SignUpForm;
 import org.bouncycastle.crypto.Digest;
 import org.bouncycastle.util.encoders.Hex;
 import org.springframework.context.annotation.Scope;
@@ -75,10 +77,10 @@ public class SRPService {
         }
     }
 
-    public UserSignUpDto signUp(String username, String password, String keyword) {
+    public UserSignUpDto signUp(SignUpForm form) {
         byte[] salt = secureRandom.generateSeed(SALT_LENGTH);
 
-        String userNameWithPassword = username + " : " + password;
+        String userNameWithPassword = form.getUsername() + " : " + form.getPassword();
         byte[] userNameWithPasswordDigest = msgDigest.digest(userNameWithPassword.getBytes());
 
         msgDigest.update(salt);
@@ -87,7 +89,7 @@ public class SRPService {
 
         BigInteger v = G.modPow(x, N); // verifier
 
-        return new UserSignUpDto(username, new String(salt), v.toString(), keyword);
+        return new UserSignUpDto(form.getUsername(), new String(salt), v.toString(), form.getKeyword());
     }
 
     public UserSignInClientDto computeUsernameAndEmphaticKeyOnClient(String username) {
@@ -109,12 +111,12 @@ public class SRPService {
         return new UserSignInServerDto(dbDto.getSalt(), emphaticKeyB.toString());
     }
 
-    public String computeClientSessionKey(UserSignInServerDto serverDto, String username, String password) {
+    public String computeClientSessionKey(UserSignInServerDto serverDto, SignInForm form) {
         msgDigest.update(emphaticKeyA.toString().getBytes());
         msgDigest.update(serverDto.getEmphaticKey().getBytes());
         BigInteger maskValue = new BigInteger(msgDigest.digest()); // u
 
-        String userNameWithPassword = username + " : " + password;
+        String userNameWithPassword = form.getUsername() + " : " + form.getPassword();
         byte[] userNameWithPasswordDigest = msgDigest.digest(userNameWithPassword.getBytes());
 
         msgDigest.update(serverDto.getSalt().getBytes());

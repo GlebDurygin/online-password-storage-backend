@@ -5,15 +5,25 @@ import com.university.diploma.dto.UserSignInDBDto;
 import com.university.diploma.dto.UserSignInServerDto;
 import com.university.diploma.dto.UserSignUpDto;
 import com.university.diploma.entity.User;
+import com.university.diploma.form.SignInClientForm;
+import com.university.diploma.form.SignInForm;
 import com.university.diploma.form.SignUpForm;
+import com.university.diploma.form.UserProfileForm;
 import com.university.diploma.service.RecordDataService;
 import com.university.diploma.service.SRPService;
 import com.university.diploma.service.UserDataService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.servlet.ModelAndView;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+
+import java.util.ArrayList;
 
 @Controller
 public class UserController {
@@ -40,46 +50,37 @@ public class UserController {
         return "sign-up";
     }
 
-/*    @CrossOrigin(origins = "*")*/
+    @CrossOrigin(origins = "http://localhost:3000")
     @PostMapping(value = "/sign-up")
-    public String signUpSubmit(@RequestBody SignUpForm form) {
-        return "redirect:/sign-in";
-/*        UserSignUpDto userDto = srpService.signUp(username, password, keyword);
+    public ResponseEntity signUpSubmit(@RequestBody SignUpForm form) {
+        UserSignUpDto userDto = srpService.signUp(form);
         if (userDataService.create(userDto)) {
-            return "redirect:/sign-in";
+            return new ResponseEntity<>(HttpStatus.OK);
         } else {
-            return "sign-up";
-        }*/
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
     }
 
+    @CrossOrigin(origins = "http://localhost:3000")
     @PostMapping("/sign-in")
-    public String signIn(@RequestParam(name = "username") String username,
-                         @RequestParam(name = "password") String password) {
-        UserSignInClientDto clientDto = srpService.computeUsernameAndEmphaticKeyOnClient(username);
+    public ResponseEntity<SignInClientForm> signIn(@RequestBody SignInForm form) {
+        UserSignInClientDto clientDto = srpService.computeUsernameAndEmphaticKeyOnClient(form.getUsername());
         UserSignInDBDto dbDto = userDataService.findUserByClientDto(clientDto);
 
         if (dbDto != null) {
             UserSignInServerDto serverDto = srpService.computeSaltAndEmphaticKeyOnServer(dbDto);
 
-            String clientSessionKey = srpService.computeClientSessionKey(serverDto, username, password);
+            String clientSessionKey = srpService.computeClientSessionKey(serverDto, form);
             String serverSessionKey = srpService.computeServerSessionKey(clientDto, dbDto);
 
-            String clientCheckValue = srpService.computeClientCheckValue(username, dbDto.getSalt());
+            String clientCheckValue = srpService.computeClientCheckValue(form.getUsername(), dbDto.getSalt());
             String serverCheckValue = srpService.computeServerCheckValue(clientCheckValue);
 
             if (clientSessionKey.equals(serverSessionKey)) {
-                Long userId = userDataService.findUser(username, password);
-                return "redirect:/users/" + userId;
+                Long userId = userDataService.findUser(form);
+                return ResponseEntity.ok(new SignInClientForm(clientSessionKey, userId));
             }
         }
-        return "sign-in";
-    }
-
-    @GetMapping("/users/{userId}")
-    public ModelAndView handleUser(@PathVariable Long userId, Model model) {
-        User user = userDataService.findById(userId);
-        model.addAttribute("records", recordDataService.findByUser(user));
-        return new ModelAndView("user", "user",
-                user != null ? user : new User());
+        return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
     }
 }

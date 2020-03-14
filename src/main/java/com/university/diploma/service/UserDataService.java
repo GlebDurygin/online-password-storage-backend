@@ -5,6 +5,7 @@ import com.university.diploma.dto.UserSignInClientDto;
 import com.university.diploma.dto.UserSignInDBDto;
 import com.university.diploma.dto.UserSignUpDto;
 import com.university.diploma.entity.User;
+import com.university.diploma.form.SignInForm;
 import com.university.diploma.repository.UserHSQLRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
@@ -95,8 +96,8 @@ public class UserDataService implements DataService<User> {
         }
     }
 
-    public Long findUser(String username, String password) {
-        Page<User> userPage = userRepository.findUserByUsernameAndPassword(username, password, PageRequest.of(0, 1));
+    public Long findUser(SignInForm form) {
+        Page<User> userPage = userRepository.findUserByUsernameAndPassword(form.getUsername(), form.getPassword(), PageRequest.of(0, 1));
         if (userPage.get()
                 .findFirst()
                 .isPresent()) {
