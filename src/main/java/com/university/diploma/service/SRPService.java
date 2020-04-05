@@ -7,14 +7,15 @@ import com.university.diploma.dto.UserSignUpDto;
 import com.university.diploma.form.SignInForm;
 import com.university.diploma.form.SignUpForm;
 import org.bouncycastle.crypto.Digest;
+import org.bouncycastle.crypto.digests.SHA256Digest;
+import org.bouncycastle.crypto.digests.SHA384Digest;
+import org.bouncycastle.crypto.prng.DigestRandomGenerator;
+import org.bouncycastle.crypto.prng.RandomGenerator;
 import org.bouncycastle.util.encoders.Hex;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 
 import java.math.BigInteger;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
 
 @Scope(value = "prototype")
 @Service
@@ -49,43 +50,44 @@ public class SRPService {
 
     protected static final int SALT_LENGTH = 16;
 
-    protected Digest digest; // hash function
-
-    protected MessageDigest msgDigest;
-    protected SecureRandom secureRandom;
+    protected Digest digest; // hash function SHA-256
+    protected RandomGenerator randomGenerator; // random generator on SHA-284 digest
 
 
     public SRPService() {
         // init Digest
-        //digest = new SHA256Digest();
-        //digest.update(NHex, 0, NHex.length);
+        digest = new SHA256Digest();
+        digest.update(N_HEX, 0, N_HEX.length);
 
-        secureRandom = new SecureRandom();
+        // init random generator
+        randomGenerator = new DigestRandomGenerator(new SHA384Digest());
 
-        try {
-            msgDigest = MessageDigest.getInstance("SHA-256");
-        } catch (NoSuchAlgorithmException ignored) {
-        }
+        // init K - multiplier parameter
+        byte[] paddedG = getLeftZeroPadded(G_HEX, N_HEX.length);
+        digest.update(paddedG, 0, paddedG.length);
 
-        if (msgDigest != null) {
-            msgDigest.update(N_HEX);
+        byte[] kHex = new byte[digest.getDigestSize()];
+        digest.doFinal(kHex, 0);
 
-            byte[] paddedG = getLeftZeroPadded(G_HEX, N_HEX.length);
-            byte[] kHex = msgDigest.digest(paddedG);
-
-            K = new BigInteger(kHex);
-        }
+        K = new BigInteger(kHex);
     }
 
     public UserSignUpDto signUp(SignUpForm form) {
-        byte[] salt = secureRandom.generateSeed(SALT_LENGTH);
+        byte[] salt = new byte[SALT_LENGTH];
+        randomGenerator.nextBytes(salt);
 
         String userNameWithPassword = form.getUsername() + " : " + form.getPassword();
-        byte[] userNameWithPasswordDigest = msgDigest.digest(userNameWithPassword.getBytes());
+        digest.update(userNameWithPassword.getBytes(), 0, userNameWithPassword.getBytes().length);
 
-        msgDigest.update(salt);
-        msgDigest.update(userNameWithPasswordDigest);
-        BigInteger x = new BigInteger(msgDigest.digest());
+        byte[] userNameWithPasswordBytes = new byte[digest.getDigestSize()];
+        digest.doFinal(userNameWithPasswordBytes, 0);
+
+        digest.update(salt, 0, salt.length);
+        digest.update(userNameWithPasswordBytes, 0, userNameWithPasswordBytes.length);
+
+        byte[] xBytes = new byte[digest.getDigestSize()];
+        digest.doFinal(xBytes, 0);
+        BigInteger x = new BigInteger(xBytes);
 
         BigInteger v = G.modPow(x, N); // verifier
 
@@ -94,7 +96,7 @@ public class SRPService {
 
     public UserSignInClientDto computeUsernameAndEmphaticKeyOnClient(String username) {
         randomA = new byte[32];
-        secureRandom.nextBytes(randomA);
+        randomGenerator.nextBytes(randomA);
         emphaticKeyA = G.modPow(new BigInteger(randomA), N);
 
         return new UserSignInClientDto(username, emphaticKeyA.toString());
@@ -102,7 +104,7 @@ public class SRPService {
 
     public UserSignInServerDto computeSaltAndEmphaticKeyOnServer(UserSignInDBDto dbDto) {
         randomB = new byte[32];
-        secureRandom.nextBytes(randomB);
+        randomGenerator.nextBytes(randomB);
         BigInteger V = new BigInteger(dbDto.getVerifier());
         emphaticKeyB = K.multiply(V)
                 .add(G.modPow(new BigInteger(randomB), N))
@@ -112,16 +114,29 @@ public class SRPService {
     }
 
     public String computeClientSessionKey(UserSignInServerDto serverDto, SignInForm form) {
-        msgDigest.update(emphaticKeyA.toString().getBytes());
-        msgDigest.update(serverDto.getEmphaticKey().getBytes());
-        BigInteger maskValue = new BigInteger(msgDigest.digest()); // u
+        byte[] emphaticKeyABytes = emphaticKeyA.toString().getBytes();
+        digest.update(emphaticKeyABytes, 0, emphaticKeyABytes.length);
+
+        byte[] emphaticKeyBBytes = serverDto.getEmphaticKey().getBytes();
+        digest.update(emphaticKeyBBytes, 0, emphaticKeyBBytes.length);
+
+        byte[] maskValueBytes = new byte[digest.getDigestSize()];
+        digest.doFinal(maskValueBytes, 0);
+        BigInteger maskValue = new BigInteger(maskValueBytes); // u = H(A,B)
 
         String userNameWithPassword = form.getUsername() + " : " + form.getPassword();
-        byte[] userNameWithPasswordDigest = msgDigest.digest(userNameWithPassword.getBytes());
+        digest.update(userNameWithPassword.getBytes(), 0, userNameWithPassword.getBytes().length);
 
-        msgDigest.update(serverDto.getSalt().getBytes());
-        msgDigest.update(userNameWithPasswordDigest);
-        BigInteger privateKey = new BigInteger(msgDigest.digest()); // x
+        byte[] userNameWithPasswordBytes = new byte[digest.getDigestSize()];
+        digest.doFinal(userNameWithPasswordBytes, 0);
+
+        byte[] saltBytes = serverDto.getSalt().getBytes();
+        digest.update(saltBytes, 0, saltBytes.length);
+        digest.update(userNameWithPasswordBytes, 0, userNameWithPasswordBytes.length);
+
+        byte[] privateKeyBytes = new byte[digest.getDigestSize()];
+        digest.doFinal(privateKeyBytes, 0);
+        BigInteger privateKey = new BigInteger(privateKeyBytes); // x - privateKey
 
         BigInteger supportPow = maskValue.multiply(privateKey)
                 .add(new BigInteger(randomA)); // a + u*x
@@ -129,33 +144,59 @@ public class SRPService {
         BigInteger sessionKey = emphaticKeyB.subtract(supportNumber)
                 .modPow(supportPow, N);
 
-        return new String(msgDigest.digest(sessionKey.toString().getBytes()));
+        byte[] sessionKeyBytes = sessionKey.toString().getBytes();
+        digest.update(sessionKeyBytes, 0, sessionKeyBytes.length);
+
+        byte[] sessionKeyDigest = new byte[digest.getDigestSize()];
+        digest.doFinal(sessionKeyDigest, 0);
+        return new String(sessionKeyDigest);
     }
 
     public String computeClientCheckValue(String username, String salt) {
-        msgDigest.update(N.toString().getBytes());
-        BigInteger n = new BigInteger(msgDigest.digest());
+        byte[] nBytes = N.toString().getBytes();
+        digest.update(nBytes, 0, nBytes.length);
+        byte[] nDigest = new byte[digest.getDigestSize()];
+        digest.doFinal(nDigest, 0);
+        BigInteger n = new BigInteger(nDigest);
 
-        msgDigest.update(G.toString().getBytes());
-        BigInteger g = new BigInteger(msgDigest.digest());
+        byte[] gBytes = G.toString().getBytes();
+        digest.update(gBytes, 0, gBytes.length);
+        byte[] gDigest = new byte[digest.getDigestSize()];
+        digest.doFinal(gDigest, 0);
+        BigInteger g = new BigInteger(gDigest);
 
-        msgDigest.update(username.getBytes());
-        BigInteger i = new BigInteger(msgDigest.digest());
+        byte[] usernameBytes = username.getBytes();
+        digest.update(usernameBytes, 0, usernameBytes.length);
+        byte[] usernameDigest = new byte[digest.getDigestSize()];
+        digest.doFinal(usernameDigest, 0);
+        BigInteger i = new BigInteger(usernameDigest);
 
-        msgDigest.update(n.xor(g).toString().getBytes());
-        msgDigest.update(i.toString().getBytes());
-        msgDigest.update(salt.getBytes());
-        msgDigest.update(emphaticKeyA.toString().getBytes());
-        msgDigest.update(emphaticKeyB.toString().getBytes());
-        msgDigest.update(K.toString().getBytes());
+        byte[] valueBytes = n.xor(g).toString().getBytes();
+        digest.update(valueBytes, 0, valueBytes.length);
+        digest.update(i.toString().getBytes(), 0, i.toString().getBytes().length);
+        digest.update(salt.getBytes(), 0, salt.getBytes().length);
+        byte[] emphaticKeyABytes = emphaticKeyA.toString().getBytes();
+        digest.update(emphaticKeyABytes, 0, emphaticKeyABytes.length);
+        byte[] emphaticKeyBBytes = emphaticKeyB.toString().getBytes();
+        digest.update(emphaticKeyBBytes, 0, emphaticKeyBBytes.length);
+        byte[] kBytes = K.toString().getBytes();
+        digest.update(kBytes, 0, kBytes.length);
 
-        return new String(msgDigest.digest());
+        byte[] checkValueBytes = new byte[digest.getDigestSize()];
+        digest.doFinal(checkValueBytes, 0);
+        return new String(checkValueBytes);
     }
 
     public String computeServerSessionKey(UserSignInClientDto clientDto, UserSignInDBDto dbDto) {
-        msgDigest.update(clientDto.getEmphaticKey().getBytes());
-        msgDigest.update(emphaticKeyB.toString().getBytes());
-        BigInteger maskValue = new BigInteger(msgDigest.digest()); // u
+        byte[] emphaticKeyABytes = clientDto.getEmphaticKey().getBytes();
+        digest.update(emphaticKeyABytes, 0, emphaticKeyABytes.length);
+
+        byte[] emphaticKeyBBytes = emphaticKeyB.toString().getBytes();
+        digest.update(emphaticKeyBBytes, 0, emphaticKeyBBytes.length);
+
+        byte[] maskValueBytes = new byte[digest.getDigestSize()];
+        digest.doFinal(maskValueBytes, 0);
+        BigInteger maskValue = new BigInteger(maskValueBytes); // u = H(A,B)
 
         BigInteger verifier = new BigInteger(dbDto.getVerifier());
         BigInteger supportPow = new BigInteger(randomB); // b
@@ -163,14 +204,25 @@ public class SRPService {
         BigInteger sessionKey = emphaticKeyA.multiply(supportNumber)
                 .modPow(supportPow, N);
 
-        return new String(msgDigest.digest(sessionKey.toString().getBytes()));
+        byte[] sessionKeyBytes = sessionKey.toString().getBytes();
+        digest.update(sessionKeyBytes, 0, sessionKeyBytes.length);
+
+        byte[] sessionKeyDigest = new byte[digest.getDigestSize()];
+        digest.doFinal(sessionKeyDigest, 0);
+        return new String(sessionKeyDigest);
     }
 
     public String computeServerCheckValue(String clientCheckValue) {
-        msgDigest.update(emphaticKeyA.toString().getBytes());
-        msgDigest.update(clientCheckValue.getBytes());
-        msgDigest.update(K.toString().getBytes());
-        return new String(msgDigest.digest());
+        byte[] emphaticKeyABytes = emphaticKeyA.toString().getBytes();
+        digest.update(emphaticKeyABytes, 0, emphaticKeyABytes.length);
+        byte[] clientCheckValueBytes = clientCheckValue.getBytes();
+        digest.update(clientCheckValueBytes, 0, clientCheckValueBytes.length);
+        byte[] kBytes = K.toString().getBytes();
+        digest.update(kBytes, 0, kBytes.length);
+
+        byte[] checkValueBytes = new byte[digest.getDigestSize()];
+        digest.doFinal(checkValueBytes, 0);
+        return new String(checkValueBytes);
     }
 
     protected byte[] getLeftZeroPadded(byte[] input, int outputLength) {
