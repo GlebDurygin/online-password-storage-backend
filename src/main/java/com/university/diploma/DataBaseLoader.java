@@ -19,6 +19,9 @@ public class DataBaseLoader implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
+        User anonymousUser = new User("anonymous", "anonymous", "anonymous");
+        userDataService.create(anonymousUser);
+
         User user1 = new User();
         user1.setUsername("Frodo");
         user1.setPassword("passwordBeggins");

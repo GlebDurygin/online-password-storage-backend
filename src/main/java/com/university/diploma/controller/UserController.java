@@ -1,29 +1,31 @@
 package com.university.diploma.controller;
 
-import com.university.diploma.dto.UserSignInClientDto;
-import com.university.diploma.dto.UserSignInDBDto;
-import com.university.diploma.dto.UserSignInServerDto;
 import com.university.diploma.dto.UserSignUpDto;
 import com.university.diploma.entity.User;
-import com.university.diploma.form.SignInClientForm;
-import com.university.diploma.form.SignInForm;
+import com.university.diploma.form.ServerAuthorizationForm;
+import com.university.diploma.form.ServerCheckForm;
 import com.university.diploma.form.SignUpForm;
-import com.university.diploma.form.UserProfileForm;
-import com.university.diploma.service.RecordDataService;
 import com.university.diploma.service.SRPService;
 import com.university.diploma.service.UserDataService;
+import com.university.diploma.session.AppSession;
+import com.university.diploma.session.AppSessionsBean;
+import com.university.diploma.session.AuthorizationDetails;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.ResponseBody;
 
-import java.util.ArrayList;
+import java.math.BigInteger;
+import java.util.Map;
+import java.util.Objects;
+
+import static com.university.diploma.session.AppSessionsBean.ANONYMOUS_SESSION_KEY;
+import static com.university.diploma.session.AppSessionsBean.SESSION_KEY_COOKIE;
 
 @Controller
 public class UserController {
@@ -31,28 +33,13 @@ public class UserController {
     @Autowired
     protected UserDataService userDataService;
     @Autowired
-    protected RecordDataService recordDataService;
-    @Autowired
     protected SRPService srpService;
-
-    @GetMapping("/")
-    public String redirectToSignIn(Model model) {
-        return "redirect:/sign-in";
-    }
-
-    @GetMapping("/sign-in")
-    public String handleSignIn(Model model) {
-        return "sign-in";
-    }
-
-    @GetMapping("/sign-up")
-    public String handleSignUp(Model model) {
-        return "sign-up";
-    }
+    @Autowired
+    protected AppSessionsBean appSessionBean;
 
     @CrossOrigin(origins = "http://localhost:3000")
     @PostMapping(value = "/sign-up")
-    public ResponseEntity signUpSubmit(@RequestBody SignUpForm form) {
+    public ResponseEntity<?> signUpSubmit(@RequestBody SignUpForm form) {
         UserSignUpDto userDto = srpService.signUp(form);
         if (userDataService.create(userDto)) {
             return new ResponseEntity<>(HttpStatus.OK);
@@ -61,26 +48,47 @@ public class UserController {
         }
     }
 
-    @CrossOrigin(origins = "http://localhost:3000")
-    @PostMapping("/sign-in")
-    public ResponseEntity<SignInClientForm> signIn(@RequestBody SignInForm form) {
-        UserSignInClientDto clientDto = srpService.computeUsernameAndEmphaticKeyOnClient(form.getUsername());
-        UserSignInDBDto dbDto = userDataService.findUserByClientDto(clientDto);
-
-        if (dbDto != null) {
-            UserSignInServerDto serverDto = srpService.computeSaltAndEmphaticKeyOnServer(dbDto);
-
-            String clientSessionKey = srpService.computeClientSessionKey(serverDto, form);
-            String serverSessionKey = srpService.computeServerSessionKey(clientDto, dbDto);
-
-            String clientCheckValue = srpService.computeClientCheckValue(form.getUsername(), dbDto.getSalt());
-            String serverCheckValue = srpService.computeServerCheckValue(clientCheckValue);
-
-            if (clientSessionKey.equals(serverSessionKey)) {
-                Long userId = userDataService.findUser(form);
-                return ResponseEntity.ok(new SignInClientForm(clientSessionKey, userId));
-            }
+    @CrossOrigin(origins = "http://localhost:3000", allowCredentials = "true")
+    @PostMapping("/sign-in-authorization")
+    @ResponseBody
+    public ResponseEntity<ServerAuthorizationForm> signInAuthorization(@RequestBody Map<String, String> body) {
+        User user = userDataService.findUserByUsername(body.get("username"));
+        if (user == null || body.get("emphaticKeyA") == null) {
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
-        return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+
+        AppSession appSession = appSessionBean.createAppSession(user);
+        AuthorizationDetails details = appSession.getAuthorizationDetails();
+        details.setEmphaticKeyA(new BigInteger(body.get("emphaticKeyA")));
+        srpService.computeEmphaticKeyB(details);
+
+        ServerAuthorizationForm form = new ServerAuthorizationForm(details.getSalt(), details.getEmphaticKeyB().toString());
+        return ResponseEntity.status(HttpStatus.OK)
+                .header("Set-Cookie", SESSION_KEY_COOKIE + "=" + details.getAuthorizationKey())
+                .body(form);
+    }
+
+    @CrossOrigin(origins = "http://localhost:3000", allowCredentials = "true")
+    @PostMapping("/sign-in-check")
+    public ResponseEntity<ServerCheckForm> signInCheck(@RequestBody Map<String, String> body,
+                                                       @CookieValue(value = SESSION_KEY_COOKIE,
+                                                               defaultValue = ANONYMOUS_SESSION_KEY) String authorizationKey) {
+        AppSession appSession = appSessionBean.getAppSessionByAuthorizationKey(authorizationKey);
+        if (appSession == null || appSession.getUser() == null || body.get("clientCheckValue") == null) {
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
+
+        AuthorizationDetails details = appSession.getAuthorizationDetails();
+        String sessionKey = srpService.computeSessionKey(details);
+        String clientCheckValue = srpService.computeClientCheckValue(details, appSession.getUser().getUsername(), sessionKey);
+
+        if (!Objects.equals(body.get("clientCheckValue"), clientCheckValue)) {
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+        }
+
+        String serverCheckValue = srpService.computeServerCheckValue(details, clientCheckValue, sessionKey);
+        appSession.setAuthorizationDetails(null);
+        appSession.setSessionKey(sessionKey);
+        return ResponseEntity.ok(new ServerCheckForm(serverCheckValue));
     }
 }

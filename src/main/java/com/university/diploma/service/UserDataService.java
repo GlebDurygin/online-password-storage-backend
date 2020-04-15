@@ -1,11 +1,8 @@
 package com.university.diploma.service;
 
 import com.university.diploma.container.PojoContainer;
-import com.university.diploma.dto.UserSignInClientDto;
-import com.university.diploma.dto.UserSignInDBDto;
 import com.university.diploma.dto.UserSignUpDto;
 import com.university.diploma.entity.User;
-import com.university.diploma.form.SignInForm;
 import com.university.diploma.repository.UserHSQLRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
@@ -96,30 +93,18 @@ public class UserDataService implements DataService<User> {
         }
     }
 
-    public Long findUser(SignInForm form) {
-        Page<User> userPage = userRepository.findUserByUsernameAndPassword(form.getUsername(), form.getPassword(), PageRequest.of(0, 1));
-        if (userPage.get()
-                .findFirst()
-                .isPresent()) {
-            return userPage.get()
-                    .findFirst()
-                    .get()
-                    .getId();
-        } else {
+    public User findUserByUsername(String username) {
+        if (username == null || username.isEmpty()) {
             return null;
         }
-    }
 
-    public UserSignInDBDto findUserByClientDto(UserSignInClientDto clientDto) {
-        Page<User> userPage = userRepository.findUserByUsername(clientDto.getUsername(), PageRequest.of(0, 1));
+        Page<User> userPage = userRepository.findUserByUsername(username, PageRequest.of(0, 1));
         if (userPage.isEmpty()) {
             return null;
         } else {
-            User user = userPage.get()
+            return userPage.get()
                     .findFirst()
-                    .get();
-
-            return new UserSignInDBDto(user.getSalt(), user.getVerifier());
+                    .orElse(null);
         }
     }
 }

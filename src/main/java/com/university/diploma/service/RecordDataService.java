@@ -11,6 +11,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Scope(value = "singleton")
@@ -113,7 +114,7 @@ public class RecordDataService implements DataService<Record> {
         Page<Record> recordsPage = recordRepository.findRecordsByUser(user, PageRequest.of(0, 50));
         return recordsPage.hasContent()
                 ? recordsPage.getContent()
-                : null;
+                : new ArrayList<>();
     }
 
     public Record findByIdAndUser(User user, Long recordId) {

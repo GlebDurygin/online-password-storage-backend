@@ -1,23 +1,27 @@
 package com.university.diploma.controller;
 
-import com.university.diploma.entity.Record;
 import com.university.diploma.entity.User;
 import com.university.diploma.form.RecordClientForm;
 import com.university.diploma.form.RecordForm;
+import com.university.diploma.form.UserIdForm;
 import com.university.diploma.form.UserProfileForm;
 import com.university.diploma.service.RecordDataService;
 import com.university.diploma.service.UserDataService;
+import com.university.diploma.session.AppSession;
+import com.university.diploma.session.AppSessionsBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.servlet.ModelAndView;
+
+import static com.university.diploma.session.AppSessionsBean.ANONYMOUS_SESSION_KEY;
+import static com.university.diploma.session.AppSessionsBean.SESSION_KEY_COOKIE;
 
 @Controller
 public class RecordController {
@@ -26,23 +30,10 @@ public class RecordController {
     protected RecordDataService recordDataService;
     @Autowired
     protected UserDataService userDataService;
+    @Autowired
+    protected AppSessionsBean appSessionBean;
 
-    @GetMapping("/user-profile/{userId}/record")
-    public ModelAndView handleNewRecord(@PathVariable Long userId) {
-        User user = userDataService.findById(userId);
-        Record record = recordDataService.createWithoutSaving(user);
-        return new ModelAndView("record", "record", record);
-    }
-
-    @GetMapping("/user-profile/{userId}/record/{recordId}")
-    public ModelAndView handleEditRecord(@PathVariable Long userId,
-                                         @PathVariable Long recordId) {
-        User user = userDataService.findById(userId);
-        Record record = recordDataService.findByIdAndUser(user, recordId);
-        return new ModelAndView("record", "record", record);
-    }
-
-    @CrossOrigin(origins = "http://localhost:3000")
+    @CrossOrigin(origins = "http://localhost:3000", allowCredentials = "true")
     @PostMapping("/user-profile/{userId}/record")
     public ResponseEntity<RecordClientForm> recordAddSubmit(@RequestBody RecordForm form,
                                                             @PathVariable Long userId) {
@@ -51,7 +42,7 @@ public class RecordController {
         return ResponseEntity.ok(new RecordClientForm(recordId));
     }
 
-    @CrossOrigin(origins = "http://localhost:3000")
+    @CrossOrigin(origins = "http://localhost:3000", allowCredentials = "true")
     @PostMapping("/user-profile/{userId}/record/{recordId}")
     public ResponseEntity recordEditSubmit(@RequestBody RecordForm form,
                                            @PathVariable Long userId,
@@ -62,26 +53,40 @@ public class RecordController {
                 : ResponseEntity.badRequest().build();
     }
 
-    @GetMapping("/user-profile/{userId}/delete/record/{recordId}")
-    public ModelAndView handleDeleteRecord(@PathVariable Long userId,
-                                           @PathVariable Long recordId,
-                                           Model model) {
-        recordDataService.remove(recordId);
-        User user = userDataService.findById(userId);
-        model.addAttribute("records", recordDataService.findByUser(user));
-        return new ModelAndView("redirect:/users/" + userId);
-    }
-
-    @CrossOrigin(origins = "http://localhost:3000")
+    @CrossOrigin(origins = "http://localhost:3000", allowCredentials = "true")
     @GetMapping("/user-profile/{userId}")
-    public ResponseEntity<UserProfileForm> getUserProfile(@PathVariable Long userId) {
-        User user = userDataService.findById(userId);
-        if (user != null) {
-            UserProfileForm form = new UserProfileForm(user.getUsername(), user.getPassword(), user.getKeyword(),
-                    recordDataService.findByUser(user));
-            return ResponseEntity.ok(form);
-        } else {
+    public ResponseEntity<UserProfileForm> getUserProfile(@PathVariable Long userId,
+                                                          @CookieValue(value = SESSION_KEY_COOKIE,
+                                                                  defaultValue = ANONYMOUS_SESSION_KEY) String sessionKey) {
+        AppSession appSession = getAppSession(sessionKey);
+        if (appSession == null) {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
+
+        User user = appSession.getUser();
+        UserProfileForm form = new UserProfileForm(user.getUsername(), user.getPassword(), user.getKeyword(),
+                recordDataService.findByUser(user));
+        return ResponseEntity.ok(form);
+    }
+
+    @CrossOrigin(origins = "http://localhost:3000", allowCredentials = "true")
+    @GetMapping("/user-profile")
+    public ResponseEntity<UserIdForm> getUserProfileId(@CookieValue(value = SESSION_KEY_COOKIE,
+            defaultValue = ANONYMOUS_SESSION_KEY) String sessionKey) {
+        AppSession appSession = getAppSession(sessionKey);
+        if (appSession == null) {
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
+
+        return ResponseEntity.ok(new UserIdForm(appSession.getUser().getId()));
+    }
+
+    protected AppSession getAppSession(String sessionKey) {
+        AppSession appSession = appSessionBean.getAppSessionBySessionKey(sessionKey);
+        if (appSession == null || sessionKey.equals(ANONYMOUS_SESSION_KEY) || appSession.getUser() == null) {
+            return null;
+        }
+
+        return appSession;
     }
 }
