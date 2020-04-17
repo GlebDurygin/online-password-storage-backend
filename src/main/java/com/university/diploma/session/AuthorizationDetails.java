@@ -12,8 +12,8 @@ public class AuthorizationDetails {
     protected String randomB;
     protected String salt;
     protected String verifier;
-    protected BigInteger emphaticKeyA;
-    protected BigInteger emphaticKeyB;
+    protected String emphaticKeyA;
+    protected String emphaticKeyB;
 
     public AuthorizationDetails(String authorizationKey) {
         this.authorizationKey = authorizationKey;
@@ -47,19 +47,19 @@ public class AuthorizationDetails {
         this.verifier = verifier;
     }
 
-    public BigInteger getEmphaticKeyA() {
+    public String getEmphaticKeyA() {
         return emphaticKeyA;
     }
 
-    public void setEmphaticKeyA(BigInteger emphaticKeyA) {
+    public void setEmphaticKeyA(String emphaticKeyA) {
         this.emphaticKeyA = emphaticKeyA;
     }
 
-    public BigInteger getEmphaticKeyB() {
+    public String getEmphaticKeyB() {
         return emphaticKeyB;
     }
 
-    public void setEmphaticKeyB(BigInteger emphaticKeyB) {
+    public void setEmphaticKeyB(String emphaticKeyB) {
         this.emphaticKeyB = emphaticKeyB;
     }
 }

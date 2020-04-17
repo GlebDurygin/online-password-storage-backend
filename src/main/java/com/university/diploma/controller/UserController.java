@@ -5,6 +5,7 @@ import com.university.diploma.entity.User;
 import com.university.diploma.form.ServerAuthorizationForm;
 import com.university.diploma.form.ServerCheckForm;
 import com.university.diploma.form.SignUpForm;
+import com.university.diploma.service.CipherService;
 import com.university.diploma.service.SRPService;
 import com.university.diploma.service.UserDataService;
 import com.university.diploma.session.AppSession;
@@ -20,7 +21,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import java.math.BigInteger;
 import java.util.Map;
 import java.util.Objects;
 
@@ -36,12 +36,14 @@ public class UserController {
     protected SRPService srpService;
     @Autowired
     protected AppSessionsBean appSessionBean;
+    @Autowired
+    protected CipherService cipherService;
 
     @CrossOrigin(origins = "http://localhost:3000")
     @PostMapping(value = "/sign-up")
     public ResponseEntity<?> signUpSubmit(@RequestBody SignUpForm form) {
-        UserSignUpDto userDto = srpService.signUp(form);
-        if (userDataService.create(userDto)) {
+        UserSignUpDto userSignUpDto = cipherService.decryptSignUpForm(form, ANONYMOUS_SESSION_KEY.getBytes());
+        if (userDataService.create(userSignUpDto)) {
             return new ResponseEntity<>(HttpStatus.OK);
         } else {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
@@ -59,7 +61,7 @@ public class UserController {
 
         AppSession appSession = appSessionBean.createAppSession(user);
         AuthorizationDetails details = appSession.getAuthorizationDetails();
-        details.setEmphaticKeyA(new BigInteger(body.get("emphaticKeyA")));
+        details.setEmphaticKeyA(body.get("emphaticKeyA"));
         srpService.computeEmphaticKeyB(details);
 
         ServerAuthorizationForm form = new ServerAuthorizationForm(details.getSalt(), details.getEmphaticKeyB().toString());

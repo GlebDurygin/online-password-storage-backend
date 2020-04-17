@@ -20,7 +20,7 @@ import java.util.Objects;
 public class AppSessionsBean {
 
     public static final String SESSION_KEY_COOKIE = "SESSION_KEY";
-    public static final String ANONYMOUS_SESSION_KEY = "1234567890";
+    public static final String ANONYMOUS_SESSION_KEY = "3026f7bbfa68b1ac22be3d719827a5aa2e5e5c599852fd2b9a1123ecfa29b275";
 
     @Autowired
     protected RandomGeneratorService randomGeneratorService;
