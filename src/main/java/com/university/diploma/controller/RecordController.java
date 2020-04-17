@@ -14,17 +14,17 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 
 import java.math.BigInteger;
 
 import static com.university.diploma.session.AppSessionsBean.ANONYMOUS_SESSION_ID;
-import static com.university.diploma.session.AppSessionsBean.SESSION_ID_COOKIE;
+import static com.university.diploma.session.AppSessionsBean.SESSION_ID_HEADER;
 
 @Controller
 public class RecordController {
@@ -58,10 +58,10 @@ public class RecordController {
                 : ResponseEntity.badRequest().build();
     }
 
-    @CrossOrigin(origins = "http://localhost:3000", allowCredentials = "true")
+    @CrossOrigin(origins = "http://localhost:3000", allowedHeaders = {SESSION_ID_HEADER, "Accept", "Content-Type"})
     @GetMapping("/user-profile/{userId}")
     public ResponseEntity<UserProfileForm> getUserProfile(@PathVariable Long userId,
-                                                          @CookieValue(value = SESSION_ID_COOKIE,
+                                                          @RequestHeader(value = SESSION_ID_HEADER,
                                                                   defaultValue = ANONYMOUS_SESSION_ID) String sessionId) {
         AppSession appSession = getAppSession(sessionId);
         if (appSession == null) {
@@ -71,19 +71,16 @@ public class RecordController {
         User user = appSession.getUser();
         byte[] username = cipherService.processBytes(appSession.getSessionKey().getBytes(), user.getUsername().getBytes());
         byte[] password = cipherService.processBytes(appSession.getSessionKey().getBytes(), user.getPassword().getBytes());
-        byte[] keyword = cipherService.processBytes(appSession.getSessionKey().getBytes(), user.getKeyword().getBytes());
         UserProfileForm form = new UserProfileForm(new BigInteger(username).toString(16),
                 new BigInteger(password).toString(16),
-                new BigInteger(keyword).toString(16),
                 recordDataService.findByUser(user));
         return ResponseEntity.status(HttpStatus.OK)
-                .header("Set-Cookie", SESSION_ID_COOKIE + "=" + appSession.getSessionId())
                 .body(form);
     }
 
-    @CrossOrigin(origins = "http://localhost:3000", allowCredentials = "true")
+    @CrossOrigin(origins = "http://localhost:3000", allowedHeaders = {SESSION_ID_HEADER, "Accept", "Content-Type"})
     @GetMapping("/user-profile")
-    public ResponseEntity<UserIdForm> getUserProfileId(@CookieValue(value = SESSION_ID_COOKIE,
+    public ResponseEntity<UserIdForm> getUserProfileId(@RequestHeader(value = SESSION_ID_HEADER,
             defaultValue = ANONYMOUS_SESSION_ID) String sessionId) {
         AppSession appSession = getAppSession(sessionId);
         if (appSession == null) {
@@ -93,7 +90,6 @@ public class RecordController {
         byte[] userId = cipherService.processBytes(appSession.getSessionKey().getBytes(), appSession.getUser().getId().toString().getBytes());
         UserIdForm form = new UserIdForm(new BigInteger(userId).toString(16));
         return ResponseEntity.status(HttpStatus.OK)
-                .header("Set-Cookie", SESSION_ID_COOKIE + "=" + appSession.getSessionId())
                 .body(form);
     }
 

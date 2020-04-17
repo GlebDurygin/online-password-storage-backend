@@ -26,10 +26,9 @@ public class CipherService {
 
     public UserSignUpDto decryptSignUpForm(SignUpForm form, byte[] key) {
         String username = new String(processBytes(key, form.getUsername()));
-        String keyword = new String(processBytes(key, form.getKeyword()));
         String salt = new String(processBytes(key, form.getSalt()));
         String verifier = new String(processBytes(key, form.getVerifier()));
-        return new UserSignUpDto(username, salt, verifier, keyword);
+        return new UserSignUpDto(username, salt, verifier);
     }
 
     public Map<String, String> decryptBody(Map<String, byte[]> body, byte[] key) {

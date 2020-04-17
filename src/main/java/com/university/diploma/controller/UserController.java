@@ -15,10 +15,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.math.BigInteger;
@@ -26,7 +26,7 @@ import java.util.Map;
 import java.util.Objects;
 
 import static com.university.diploma.session.AppSessionsBean.ANONYMOUS_SESSION_KEY;
-import static com.university.diploma.session.AppSessionsBean.AUTHORIZATION_KEY_COOKIE;
+import static com.university.diploma.session.AppSessionsBean.AUTHORIZATION_KEY_HEADER;
 
 @Controller
 public class UserController {
@@ -51,7 +51,7 @@ public class UserController {
         }
     }
 
-    @CrossOrigin(origins = "http://localhost:3000", allowCredentials = "true")
+    @CrossOrigin(origins = "http://localhost:3000")
     @PostMapping("/sign-in-authorization")
     @ResponseBody
     public ResponseEntity<ServerAuthorizationForm> signInAuthorization(@RequestBody Map<String, byte[]> encryptedBody) {
@@ -68,18 +68,17 @@ public class UserController {
 
         byte[] salt = cipherService.processBytes(details.getAuthorizationKey().getBytes(), details.getSalt().getBytes());
         byte[] emphaticKeyB = cipherService.processBytes(details.getAuthorizationKey().getBytes(), details.getEmphaticKeyB().getBytes());
-        ServerAuthorizationForm form = new ServerAuthorizationForm(new BigInteger(salt).toString(16),
+        ServerAuthorizationForm form = new ServerAuthorizationForm(details.getAuthorizationKey(), new BigInteger(salt).toString(16),
                 new BigInteger(emphaticKeyB).toString(16));
 
         return ResponseEntity.status(HttpStatus.OK)
-                .header("Set-Cookie", AUTHORIZATION_KEY_COOKIE + "=" + details.getAuthorizationKey())
                 .body(form);
     }
 
-    @CrossOrigin(origins = "http://localhost:3000", allowCredentials = "true")
+    @CrossOrigin(origins = "http://localhost:3000", allowedHeaders = {AUTHORIZATION_KEY_HEADER, "Accept", "Content-Type"})
     @PostMapping("/sign-in-check")
     public ResponseEntity<ServerCheckForm> signInCheck(@RequestBody Map<String, byte[]> encryptedBody,
-                                                       @CookieValue(value = AUTHORIZATION_KEY_COOKIE,
+                                                       @RequestHeader(value = AUTHORIZATION_KEY_HEADER,
                                                                defaultValue = ANONYMOUS_SESSION_KEY) String authorizationKey) {
         AppSession appSession = appSessionBean.getAppSessionByAuthorizationKey(authorizationKey);
         Map<String, String> body = cipherService.decryptBody(encryptedBody, authorizationKey.getBytes());
@@ -99,6 +98,7 @@ public class UserController {
         appSession.setAuthorizationDetails(null);
         appSession.setSessionKey(sessionKey);
         appSession.setSessionId(srpService.computeSessionId(clientCheckValue, serverCheckValue, sessionKey));
-        return ResponseEntity.ok(new ServerCheckForm(serverCheckValue));
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(new ServerCheckForm(serverCheckValue));
     }
 }

@@ -29,9 +29,6 @@ public class User {
     @Column(name = "PASSWORD", length = 256, nullable = false)
     private String password;
 
-    @Column(name = "KEYWORD", length = 64)
-    private String keyword;
-
     @Column(name = "VERIFIER", length = 2048)
     private String verifier;
 
@@ -60,10 +57,9 @@ public class User {
     public User() {
     }
 
-    public User(String username, String password, String keyword) {
+    public User(String username, String password) {
         this.username = username;
         this.password = password;
-        this.keyword = keyword;
     }
 
     public Long getId() {
@@ -88,14 +84,6 @@ public class User {
 
     public void setPassword(String password) {
         this.password = password;
-    }
-
-    public String getKeyword() {
-        return keyword;
-    }
-
-    public void setKeyword(String keyword) {
-        this.keyword = keyword;
     }
 
     public String getVerifier() {

@@ -19,8 +19,8 @@ import java.util.Objects;
 @Scope("singleton")
 public class AppSessionsBean {
 
-    public static final String AUTHORIZATION_KEY_COOKIE = "AUTHORIZATION_KEY";
-    public static final String SESSION_ID_COOKIE = "SESSION_ID";
+    public static final String AUTHORIZATION_KEY_HEADER = "Authorization-Key";
+    public static final String SESSION_ID_HEADER = "Session-Id";
     public static final String ANONYMOUS_SESSION_KEY = "3026f7bbfa68b1ac22be3d719827a5aa2e5e5c599852fd2b9a1123ecfa29b275";
     public static final String ANONYMOUS_SESSION_ID = "473dc69678d1c1db737484948eff81a75882fcdfe16ecae83e3fc2e88d6f7034";
 
