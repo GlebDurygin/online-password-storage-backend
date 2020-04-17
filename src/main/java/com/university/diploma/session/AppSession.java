@@ -7,6 +7,15 @@ import com.university.diploma.entity.User;
  */
 public class AppSession {
 
+    /**
+     * Authorization timeout = 2 seconds.
+     */
+    public static final long AUTHORIZATION_TIMEOUT = 2000;
+    /**
+     * Session timeout = 5 minutes.
+     */
+    public static final long SESSION_TIMEOUT = 300000;
+
     protected final User user;
     protected String sessionKey;
     protected String sessionId;
@@ -52,5 +61,17 @@ public class AppSession {
 
     public void setAuthorizationDetails(AuthorizationDetails authorizationDetails) {
         this.authorizationDetails = authorizationDetails;
+    }
+
+    public boolean checkAuthorizationTimeout() {
+        return System.currentTimeMillis() > (lastActionTime + AUTHORIZATION_TIMEOUT);
+    }
+
+    public boolean checkSessionTimeout() {
+        return System.currentTimeMillis() > (lastActionTime + SESSION_TIMEOUT);
+    }
+
+    public void updateLastActionTime() {
+        this.lastActionTime = System.currentTimeMillis();
     }
 }

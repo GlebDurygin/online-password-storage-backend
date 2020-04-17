@@ -43,18 +43,31 @@ public class AppSessionsBean {
     }
 
     public AppSession getAppSessionByAuthorizationKey(String authorizationKey) {
-        return sessions.stream()
+        AppSession session = sessions.stream()
                 .filter(appSession -> appSession.getAuthorizationDetails() != null
                         && Objects.equals(appSession.getAuthorizationDetails().getAuthorizationKey(), authorizationKey))
                 .findFirst()
                 .orElse(null);
+
+        if (session != null) {
+            if (!session.checkAuthorizationTimeout()) {
+                session.updateLastActionTime();
+            } else {
+                removeAppSession(session);
+                session = null;
+            }
+        }
+
+        return session;
     }
 
     public AppSession getAppSessionBySessionId(String sessionId) {
-        return sessions.stream()
+        AppSession session = sessions.stream()
                 .filter(appSession -> appSession.getSessionId() != null && appSession.getSessionId().equals(sessionId))
                 .findFirst()
                 .orElse(null);
+
+        return checkSessionTimeout(session);
     }
 
     protected AuthorizationDetails createAuthorizationDetails(User user) {
@@ -70,13 +83,28 @@ public class AppSessionsBean {
     }
 
     protected AppSession getAppSessionByUser(User user) {
-        return sessions.stream()
+        AppSession session = sessions.stream()
                 .filter(appSession -> Objects.equals(user.getUsername(), appSession.getUser().getUsername()))
                 .findFirst()
                 .orElse(null);
+
+        return checkSessionTimeout(session);
     }
 
     protected void removeAppSession(AppSession appSession) {
         sessions.remove(appSession);
+    }
+
+    protected AppSession checkSessionTimeout(AppSession appSession) {
+        if (appSession != null) {
+            if (!appSession.checkSessionTimeout()) {
+                appSession.updateLastActionTime();
+            } else {
+                removeAppSession(appSession);
+                appSession = null;
+            }
+        }
+
+        return appSession;
     }
 }
