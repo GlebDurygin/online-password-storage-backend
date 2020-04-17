@@ -9,6 +9,7 @@ public class AppSession {
 
     protected final User user;
     protected String sessionKey;
+    protected String sessionId;
     protected long lastActionTime;
     protected AuthorizationDetails authorizationDetails;
 
@@ -27,6 +28,14 @@ public class AppSession {
 
     public void setSessionKey(String sessionKey) {
         this.sessionKey = sessionKey;
+    }
+
+    public String getSessionId() {
+        return sessionId;
+    }
+
+    public void setSessionId(String sessionId) {
+        this.sessionId = sessionId;
     }
 
     public long getLastActionTime() {

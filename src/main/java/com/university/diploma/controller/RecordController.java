@@ -5,6 +5,7 @@ import com.university.diploma.form.RecordClientForm;
 import com.university.diploma.form.RecordForm;
 import com.university.diploma.form.UserIdForm;
 import com.university.diploma.form.UserProfileForm;
+import com.university.diploma.service.CipherService;
 import com.university.diploma.service.RecordDataService;
 import com.university.diploma.service.UserDataService;
 import com.university.diploma.session.AppSession;
@@ -20,8 +21,10 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
-import static com.university.diploma.session.AppSessionsBean.ANONYMOUS_SESSION_KEY;
-import static com.university.diploma.session.AppSessionsBean.SESSION_KEY_COOKIE;
+import java.math.BigInteger;
+
+import static com.university.diploma.session.AppSessionsBean.ANONYMOUS_SESSION_ID;
+import static com.university.diploma.session.AppSessionsBean.SESSION_ID_COOKIE;
 
 @Controller
 public class RecordController {
@@ -32,6 +35,8 @@ public class RecordController {
     protected UserDataService userDataService;
     @Autowired
     protected AppSessionsBean appSessionBean;
+    @Autowired
+    protected CipherService cipherService;
 
     @CrossOrigin(origins = "http://localhost:3000", allowCredentials = "true")
     @PostMapping("/user-profile/{userId}/record")
@@ -56,34 +61,45 @@ public class RecordController {
     @CrossOrigin(origins = "http://localhost:3000", allowCredentials = "true")
     @GetMapping("/user-profile/{userId}")
     public ResponseEntity<UserProfileForm> getUserProfile(@PathVariable Long userId,
-                                                          @CookieValue(value = SESSION_KEY_COOKIE,
-                                                                  defaultValue = ANONYMOUS_SESSION_KEY) String sessionKey) {
-        AppSession appSession = getAppSession(sessionKey);
+                                                          @CookieValue(value = SESSION_ID_COOKIE,
+                                                                  defaultValue = ANONYMOUS_SESSION_ID) String sessionId) {
+        AppSession appSession = getAppSession(sessionId);
         if (appSession == null) {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
 
         User user = appSession.getUser();
-        UserProfileForm form = new UserProfileForm(user.getUsername(), user.getPassword(), user.getKeyword(),
+        byte[] username = cipherService.processBytes(appSession.getSessionKey().getBytes(), user.getUsername().getBytes());
+        byte[] password = cipherService.processBytes(appSession.getSessionKey().getBytes(), user.getPassword().getBytes());
+        byte[] keyword = cipherService.processBytes(appSession.getSessionKey().getBytes(), user.getKeyword().getBytes());
+        UserProfileForm form = new UserProfileForm(new BigInteger(username).toString(16),
+                new BigInteger(password).toString(16),
+                new BigInteger(keyword).toString(16),
                 recordDataService.findByUser(user));
-        return ResponseEntity.ok(form);
+        return ResponseEntity.status(HttpStatus.OK)
+                .header("Set-Cookie", SESSION_ID_COOKIE + "=" + appSession.getSessionId())
+                .body(form);
     }
 
     @CrossOrigin(origins = "http://localhost:3000", allowCredentials = "true")
     @GetMapping("/user-profile")
-    public ResponseEntity<UserIdForm> getUserProfileId(@CookieValue(value = SESSION_KEY_COOKIE,
-            defaultValue = ANONYMOUS_SESSION_KEY) String sessionKey) {
-        AppSession appSession = getAppSession(sessionKey);
+    public ResponseEntity<UserIdForm> getUserProfileId(@CookieValue(value = SESSION_ID_COOKIE,
+            defaultValue = ANONYMOUS_SESSION_ID) String sessionId) {
+        AppSession appSession = getAppSession(sessionId);
         if (appSession == null) {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
 
-        return ResponseEntity.ok(new UserIdForm(appSession.getUser().getId()));
+        byte[] userId = cipherService.processBytes(appSession.getSessionKey().getBytes(), appSession.getUser().getId().toString().getBytes());
+        UserIdForm form = new UserIdForm(new BigInteger(userId).toString(16));
+        return ResponseEntity.status(HttpStatus.OK)
+                .header("Set-Cookie", SESSION_ID_COOKIE + "=" + appSession.getSessionId())
+                .body(form);
     }
 
-    protected AppSession getAppSession(String sessionKey) {
-        AppSession appSession = appSessionBean.getAppSessionBySessionKey(sessionKey);
-        if (appSession == null || sessionKey.equals(ANONYMOUS_SESSION_KEY) || appSession.getUser() == null) {
+    protected AppSession getAppSession(String sessionId) {
+        AppSession appSession = appSessionBean.getAppSessionBySessionId(sessionId);
+        if (appSession == null || sessionId.equals(ANONYMOUS_SESSION_ID) || appSession.getUser() == null) {
             return null;
         }
 

@@ -151,4 +151,16 @@ public class SRPService {
         digest.doFinal(checkValueBytes, 0);
         return new BigInteger(checkValueBytes).toString(16);
     }
+
+    public String computeSessionId(String clientCheckValue, String serverCheckValue, String sessionKey) {
+        byte[] clientCheckValueBytes = clientCheckValue.getBytes();
+        digest.update(clientCheckValueBytes, 0, clientCheckValueBytes.length);
+        byte[] serverCheckValueBytes = serverCheckValue.getBytes();
+        digest.update(serverCheckValueBytes, 0, serverCheckValueBytes.length);
+        byte[] sessionKeyBytes = sessionKey.getBytes();
+        digest.update(sessionKeyBytes, 0, sessionKeyBytes.length);
+        byte[] sessionIdBytes = new byte[digest.getDigestSize()];
+        digest.doFinal(sessionIdBytes, 0);
+        return new BigInteger(sessionIdBytes).toString(16);
+    }
 }

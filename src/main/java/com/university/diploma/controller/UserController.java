@@ -26,7 +26,7 @@ import java.util.Map;
 import java.util.Objects;
 
 import static com.university.diploma.session.AppSessionsBean.ANONYMOUS_SESSION_KEY;
-import static com.university.diploma.session.AppSessionsBean.SESSION_KEY_COOKIE;
+import static com.university.diploma.session.AppSessionsBean.AUTHORIZATION_KEY_COOKIE;
 
 @Controller
 public class UserController {
@@ -72,14 +72,14 @@ public class UserController {
                 new BigInteger(emphaticKeyB).toString(16));
 
         return ResponseEntity.status(HttpStatus.OK)
-                .header("Set-Cookie", SESSION_KEY_COOKIE + "=" + details.getAuthorizationKey())
+                .header("Set-Cookie", AUTHORIZATION_KEY_COOKIE + "=" + details.getAuthorizationKey())
                 .body(form);
     }
 
     @CrossOrigin(origins = "http://localhost:3000", allowCredentials = "true")
     @PostMapping("/sign-in-check")
     public ResponseEntity<ServerCheckForm> signInCheck(@RequestBody Map<String, byte[]> encryptedBody,
-                                                       @CookieValue(value = SESSION_KEY_COOKIE,
+                                                       @CookieValue(value = AUTHORIZATION_KEY_COOKIE,
                                                                defaultValue = ANONYMOUS_SESSION_KEY) String authorizationKey) {
         AppSession appSession = appSessionBean.getAppSessionByAuthorizationKey(authorizationKey);
         Map<String, String> body = cipherService.decryptBody(encryptedBody, authorizationKey.getBytes());
@@ -98,6 +98,7 @@ public class UserController {
         String serverCheckValue = srpService.computeServerCheckValue(details, clientCheckValue, sessionKey);
         appSession.setAuthorizationDetails(null);
         appSession.setSessionKey(sessionKey);
+        appSession.setSessionId(srpService.computeSessionId(clientCheckValue, serverCheckValue, sessionKey));
         return ResponseEntity.ok(new ServerCheckForm(serverCheckValue));
     }
 }

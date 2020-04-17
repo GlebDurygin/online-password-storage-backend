@@ -2,13 +2,13 @@ package com.university.diploma.form;
 
 public class UserIdForm {
 
-    protected final Long userId;
+    protected final String userId;
 
-    public UserIdForm(Long userId) {
+    public UserIdForm(String userId) {
         this.userId = userId;
     }
 
-    public Long getUserId() {
+    public String getUserId() {
         return userId;
     }
 }
