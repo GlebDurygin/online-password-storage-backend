@@ -8,6 +8,10 @@ import org.bouncycastle.crypto.params.KeyParameter;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+
 @Component
 @Scope("prototype")
 public class CipherService {
@@ -28,7 +32,20 @@ public class CipherService {
         return new UserSignUpDto(username, salt, verifier, keyword);
     }
 
+    public Map<String, String> decryptBody(Map<String, byte[]> body, byte[] key) {
+        Map<String, String> decryptedBody = new HashMap<>();
+        for (Map.Entry<String, byte[]> entry : body.entrySet()) {
+            String value = new String(processBytes(key, entry.getValue()));
+            decryptedBody.put(entry.getKey(), value);
+        }
+
+        return decryptedBody;
+    }
+
     public byte[] processBytes(byte[] key, byte[] text) {
+        if (key.length > 64) {
+            key = Arrays.copyOfRange(key, 1, key.length);
+        }
         if (key.length < 1 || key.length > 256) {
             throw new IllegalArgumentException(
                     "key must be between 1 and 256 bytes");

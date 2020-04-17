@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import java.math.BigInteger;
 import java.util.Map;
 import java.util.Objects;
 
@@ -53,7 +54,8 @@ public class UserController {
     @CrossOrigin(origins = "http://localhost:3000", allowCredentials = "true")
     @PostMapping("/sign-in-authorization")
     @ResponseBody
-    public ResponseEntity<ServerAuthorizationForm> signInAuthorization(@RequestBody Map<String, String> body) {
+    public ResponseEntity<ServerAuthorizationForm> signInAuthorization(@RequestBody Map<String, byte[]> encryptedBody) {
+        Map<String, String> body = cipherService.decryptBody(encryptedBody, ANONYMOUS_SESSION_KEY.getBytes());
         User user = userDataService.findUserByUsername(body.get("username"));
         if (user == null || body.get("emphaticKeyA") == null) {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
@@ -64,7 +66,11 @@ public class UserController {
         details.setEmphaticKeyA(body.get("emphaticKeyA"));
         srpService.computeEmphaticKeyB(details);
 
-        ServerAuthorizationForm form = new ServerAuthorizationForm(details.getSalt(), details.getEmphaticKeyB().toString());
+        byte[] salt = cipherService.processBytes(details.getAuthorizationKey().getBytes(), details.getSalt().getBytes());
+        byte[] emphaticKeyB = cipherService.processBytes(details.getAuthorizationKey().getBytes(), details.getEmphaticKeyB().getBytes());
+        ServerAuthorizationForm form = new ServerAuthorizationForm(new BigInteger(salt).toString(16),
+                new BigInteger(emphaticKeyB).toString(16));
+
         return ResponseEntity.status(HttpStatus.OK)
                 .header("Set-Cookie", SESSION_KEY_COOKIE + "=" + details.getAuthorizationKey())
                 .body(form);
@@ -72,10 +78,11 @@ public class UserController {
 
     @CrossOrigin(origins = "http://localhost:3000", allowCredentials = "true")
     @PostMapping("/sign-in-check")
-    public ResponseEntity<ServerCheckForm> signInCheck(@RequestBody Map<String, String> body,
+    public ResponseEntity<ServerCheckForm> signInCheck(@RequestBody Map<String, byte[]> encryptedBody,
                                                        @CookieValue(value = SESSION_KEY_COOKIE,
                                                                defaultValue = ANONYMOUS_SESSION_KEY) String authorizationKey) {
         AppSession appSession = appSessionBean.getAppSessionByAuthorizationKey(authorizationKey);
+        Map<String, String> body = cipherService.decryptBody(encryptedBody, authorizationKey.getBytes());
         if (appSession == null || appSession.getUser() == null || body.get("clientCheckValue") == null) {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
