@@ -1,4 +1,4 @@
-### Онлайн-сервис защищенного хранения данных с использованием протокола аутентификации SRP 6a 
+## Онлайн-сервис защищенного хранения данных с использованием протокола аутентификации SRP 6a 
 Онлайн-сервис разделен на две части:
 * [backend (Java)](https://github.com/GlebDurygin/online-password-storage-backend)
 * [frontend (JavaScript)](https://github.com/GlebDurygin/online-password-storage-frontend)
