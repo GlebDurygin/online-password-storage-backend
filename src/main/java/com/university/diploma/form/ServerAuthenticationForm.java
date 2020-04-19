@@ -1,13 +1,13 @@
 package com.university.diploma.form;
 
-public class ServerAuthorizationForm {
+public class ServerAuthenticationForm {
 
-    protected final String authorizationKey;
+    protected final String authenticationKey;
     protected final String salt;
     protected final String emphaticKeyB;
 
-    public ServerAuthorizationForm(String authorizationKey, String salt, String emphaticKeyB) {
-        this.authorizationKey = authorizationKey;
+    public ServerAuthenticationForm(String authenticationKey, String salt, String emphaticKeyB) {
+        this.authenticationKey = authenticationKey;
         this.salt = salt;
         this.emphaticKeyB = emphaticKeyB;
     }
@@ -20,7 +20,7 @@ public class ServerAuthorizationForm {
         return emphaticKeyB;
     }
 
-    public String getAuthorizationKey() {
-        return authorizationKey;
+    public String getAuthenticationKey() {
+        return authenticationKey;
     }
 }

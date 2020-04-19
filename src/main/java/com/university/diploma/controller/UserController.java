@@ -2,7 +2,7 @@ package com.university.diploma.controller;
 
 import com.university.diploma.dto.UserSignUpDto;
 import com.university.diploma.entity.User;
-import com.university.diploma.form.ServerAuthorizationForm;
+import com.university.diploma.form.ServerAuthenticationForm;
 import com.university.diploma.form.ServerCheckForm;
 import com.university.diploma.form.SignUpForm;
 import com.university.diploma.service.CipherService;
@@ -10,7 +10,7 @@ import com.university.diploma.service.SRPService;
 import com.university.diploma.service.UserDataService;
 import com.university.diploma.session.AppSession;
 import com.university.diploma.session.AppSessionsBean;
-import com.university.diploma.session.AuthorizationDetails;
+import com.university.diploma.session.AuthenticationDetails;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -26,7 +26,7 @@ import java.util.Map;
 import java.util.Objects;
 
 import static com.university.diploma.session.AppSessionsBean.ANONYMOUS_SESSION_KEY;
-import static com.university.diploma.session.AppSessionsBean.AUTHORIZATION_KEY_HEADER;
+import static com.university.diploma.session.AppSessionsBean.AUTHENTICATION_KEY_HEADER;
 
 @Controller
 public class UserController {
@@ -52,9 +52,9 @@ public class UserController {
     }
 
     @CrossOrigin(origins = "http://localhost:3000")
-    @PostMapping("/sign-in-authorization")
+    @PostMapping("/sign-in-authentication")
     @ResponseBody
-    public ResponseEntity<ServerAuthorizationForm> signInAuthorization(@RequestBody Map<String, byte[]> encryptedBody) {
+    public ResponseEntity<ServerAuthenticationForm> signInAuthentication(@RequestBody Map<String, byte[]> encryptedBody) {
         Map<String, String> body = cipherService.decryptBody(encryptedBody, ANONYMOUS_SESSION_KEY.getBytes());
         User user = userDataService.findUserByUsername(body.get("username"));
         if (user == null || body.get("emphaticKeyA") == null) {
@@ -62,31 +62,31 @@ public class UserController {
         }
 
         AppSession appSession = appSessionBean.createAppSession(user);
-        AuthorizationDetails details = appSession.getAuthorizationDetails();
+        AuthenticationDetails details = appSession.getAuthenticationDetails();
         details.setEmphaticKeyA(body.get("emphaticKeyA"));
         srpService.computeEmphaticKeyB(details);
 
-        byte[] salt = cipherService.processBytes(details.getAuthorizationKey().getBytes(), details.getSalt().getBytes());
-        byte[] emphaticKeyB = cipherService.processBytes(details.getAuthorizationKey().getBytes(), details.getEmphaticKeyB().getBytes());
-        ServerAuthorizationForm form = new ServerAuthorizationForm(details.getAuthorizationKey(), new BigInteger(salt).toString(16),
+        byte[] salt = cipherService.processBytes(details.getAuthenticationKey().getBytes(), details.getSalt().getBytes());
+        byte[] emphaticKeyB = cipherService.processBytes(details.getAuthenticationKey().getBytes(), details.getEmphaticKeyB().getBytes());
+        ServerAuthenticationForm form = new ServerAuthenticationForm(details.getAuthenticationKey(), new BigInteger(salt).toString(16),
                 new BigInteger(emphaticKeyB).toString(16));
 
         return ResponseEntity.status(HttpStatus.OK)
                 .body(form);
     }
 
-    @CrossOrigin(origins = "http://localhost:3000", allowedHeaders = {AUTHORIZATION_KEY_HEADER, "Accept", "Content-Type"})
+    @CrossOrigin(origins = "http://localhost:3000", allowedHeaders = {AUTHENTICATION_KEY_HEADER, "Accept", "Content-Type"})
     @PostMapping("/sign-in-check")
     public ResponseEntity<ServerCheckForm> signInCheck(@RequestBody Map<String, byte[]> encryptedBody,
-                                                       @RequestHeader(value = AUTHORIZATION_KEY_HEADER,
-                                                               defaultValue = ANONYMOUS_SESSION_KEY) String authorizationKey) {
-        AppSession appSession = appSessionBean.getAppSessionByAuthorizationKey(authorizationKey);
-        Map<String, String> body = cipherService.decryptBody(encryptedBody, authorizationKey.getBytes());
+                                                       @RequestHeader(value = AUTHENTICATION_KEY_HEADER,
+                                                               defaultValue = ANONYMOUS_SESSION_KEY) String authenticationKey) {
+        AppSession appSession = appSessionBean.getAppSessionByAuthenticationKey(authenticationKey);
+        Map<String, String> body = cipherService.decryptBody(encryptedBody, authenticationKey.getBytes());
         if (appSession == null || appSession.getUser() == null || body.get("clientCheckValue") == null) {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
 
-        AuthorizationDetails details = appSession.getAuthorizationDetails();
+        AuthenticationDetails details = appSession.getAuthenticationDetails();
         String sessionKey = srpService.computeSessionKey(details);
         String clientCheckValue = srpService.computeClientCheckValue(details, appSession.getUser().getUsername(), sessionKey);
 
@@ -95,7 +95,7 @@ public class UserController {
         }
 
         String serverCheckValue = srpService.computeServerCheckValue(details, clientCheckValue, sessionKey);
-        appSession.setAuthorizationDetails(null);
+        appSession.setAuthenticationDetails(null);
         appSession.setSessionKey(sessionKey);
         appSession.setSessionId(srpService.computeSessionId(clientCheckValue, serverCheckValue, sessionKey));
         return ResponseEntity.status(HttpStatus.OK)

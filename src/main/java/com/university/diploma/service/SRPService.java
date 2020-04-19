@@ -1,6 +1,6 @@
 package com.university.diploma.service;
 
-import com.university.diploma.session.AuthorizationDetails;
+import com.university.diploma.session.AuthenticationDetails;
 import org.bouncycastle.crypto.Digest;
 import org.bouncycastle.crypto.digests.SHA256Digest;
 import org.bouncycastle.util.encoders.Hex;
@@ -63,7 +63,7 @@ public class SRPService {
         K = new BigInteger(kHex);
     }
 
-    public void computeEmphaticKeyB(AuthorizationDetails details) {
+    public void computeEmphaticKeyB(AuthenticationDetails details) {
         byte[] randomB = new byte[32];
         randomGeneratorService.nextBytes(randomB);
         details.setRandomB(new BigInteger(randomB).toString(16));
@@ -75,7 +75,7 @@ public class SRPService {
         details.setEmphaticKeyB(emphaticKeyB.toString(16));
     }
 
-    public String computeSessionKey(AuthorizationDetails details) {
+    public String computeSessionKey(AuthenticationDetails details) {
         BigInteger emphaticKeyA = new BigInteger(details.getEmphaticKeyA(), 16);
         byte[] emphaticKeyABytes = emphaticKeyA.toString().getBytes();
         digest.update(emphaticKeyABytes, 0, emphaticKeyABytes.length);
@@ -101,7 +101,7 @@ public class SRPService {
         return new BigInteger(sessionKeyDigest).toString(16);
     }
 
-    public String computeClientCheckValue(AuthorizationDetails details, String username, String sessionKey) {
+    public String computeClientCheckValue(AuthenticationDetails details, String username, String sessionKey) {
         byte[] nBytes = N.toString().getBytes();
         digest.update(nBytes, 0, nBytes.length);
         byte[] nDigest = new byte[digest.getDigestSize()];
@@ -139,7 +139,7 @@ public class SRPService {
         return new BigInteger(checkValueBytes).toString(16);
     }
 
-    public String computeServerCheckValue(AuthorizationDetails details, String clientCheckValue, String sessionKey) {
+    public String computeServerCheckValue(AuthenticationDetails details, String clientCheckValue, String sessionKey) {
         byte[] emphaticKeyABytes = new BigInteger(details.getEmphaticKeyA(), 16).toString().getBytes();
         digest.update(emphaticKeyABytes, 0, emphaticKeyABytes.length);
         byte[] clientCheckValueBytes = clientCheckValue.getBytes();

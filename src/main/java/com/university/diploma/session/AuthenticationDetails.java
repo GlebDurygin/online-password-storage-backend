@@ -1,13 +1,11 @@
 package com.university.diploma.session;
 
-import java.math.BigInteger;
-
 /**
- * Used only for authorization.
+ * Used only for authentication.
  */
-public class AuthorizationDetails {
+public class AuthenticationDetails {
 
-    protected final String authorizationKey;
+    protected final String authenticationKey;
 
     protected String randomB;
     protected String salt;
@@ -15,12 +13,12 @@ public class AuthorizationDetails {
     protected String emphaticKeyA;
     protected String emphaticKeyB;
 
-    public AuthorizationDetails(String authorizationKey) {
-        this.authorizationKey = authorizationKey;
+    public AuthenticationDetails(String authenticationKey) {
+        this.authenticationKey = authenticationKey;
     }
 
-    public String getAuthorizationKey() {
-        return authorizationKey;
+    public String getAuthenticationKey() {
+        return authenticationKey;
     }
 
     public String getRandomB() {

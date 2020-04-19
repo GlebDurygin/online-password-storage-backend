@@ -19,7 +19,7 @@ import java.util.Objects;
 @Scope("singleton")
 public class AppSessionsBean {
 
-    public static final String AUTHORIZATION_KEY_HEADER = "Authorization-Key";
+    public static final String AUTHENTICATION_KEY_HEADER = "Authentication-Key";
     public static final String SESSION_ID_HEADER = "Session-Id";
     public static final String ANONYMOUS_SESSION_KEY = "3026f7bbfa68b1ac22be3d719827a5aa2e5e5c599852fd2b9a1123ecfa29b275";
     public static final String ANONYMOUS_SESSION_ID = "473dc69678d1c1db737484948eff81a75882fcdfe16ecae83e3fc2e88d6f7034";
@@ -36,21 +36,21 @@ public class AppSessionsBean {
         }
 
         AppSession appSession = new AppSession(user);
-        AuthorizationDetails details = createAuthorizationDetails(user);
-        appSession.setAuthorizationDetails(details);
+        AuthenticationDetails details = createAuthenticationDetails(user);
+        appSession.setAuthenticationDetails(details);
         sessions.add(appSession);
         return appSession;
     }
 
-    public AppSession getAppSessionByAuthorizationKey(String authorizationKey) {
+    public AppSession getAppSessionByAuthenticationKey(String authenticationKey) {
         AppSession session = sessions.stream()
-                .filter(appSession -> appSession.getAuthorizationDetails() != null
-                        && Objects.equals(appSession.getAuthorizationDetails().getAuthorizationKey(), authorizationKey))
+                .filter(appSession -> appSession.getAuthenticationDetails() != null
+                        && Objects.equals(appSession.getAuthenticationDetails().getAuthenticationKey(), authenticationKey))
                 .findFirst()
                 .orElse(null);
 
         if (session != null) {
-            if (!session.checkAuthorizationTimeout()) {
+            if (!session.checkAuthenticationTimeout()) {
                 session.updateLastActionTime();
             } else {
                 removeAppSession(session);
@@ -70,16 +70,16 @@ public class AppSessionsBean {
         return checkSessionTimeout(session);
     }
 
-    protected AuthorizationDetails createAuthorizationDetails(User user) {
-        byte[] authorizationKeyBytes = new byte[32];
-        randomGeneratorService.nextBytes(authorizationKeyBytes);
-        String authorizationKey = new BigInteger(authorizationKeyBytes).toString(16);
+    protected AuthenticationDetails createAuthenticationDetails(User user) {
+        byte[] authenticationKeyBytes = new byte[32];
+        randomGeneratorService.nextBytes(authenticationKeyBytes);
+        String authenticationKey = new BigInteger(authenticationKeyBytes).toString(16);
 
-        AuthorizationDetails authorizationDetails = new AuthorizationDetails(authorizationKey);
+        AuthenticationDetails authenticationDetails = new AuthenticationDetails(authenticationKey);
 
-        authorizationDetails.setSalt(user.getSalt());
-        authorizationDetails.setVerifier(user.getVerifier());
-        return authorizationDetails;
+        authenticationDetails.setSalt(user.getSalt());
+        authenticationDetails.setVerifier(user.getVerifier());
+        return authenticationDetails;
     }
 
     protected AppSession getAppSessionByUser(User user) {
