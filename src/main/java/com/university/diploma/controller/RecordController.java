@@ -69,8 +69,8 @@ public class RecordController {
         }
 
         User user = appSession.getUser();
-        byte[] username = cipherService.processBlock(true, appSession.getSessionKey(), user.getUsername().getBytes());
-        byte[] password = cipherService.processBlock(true, appSession.getSessionKey(), user.getPassword().getBytes());
+        byte[] username = cipherService.processBlockAES256(true, appSession.getSessionKey(), user.getUsername().getBytes());
+        byte[] password = cipherService.processBlockAES256(true, appSession.getSessionKey(), user.getPassword().getBytes());
         UserProfileForm form = new UserProfileForm(new BigInteger(username).toString(16),
                 new BigInteger(password).toString(16),
                 recordDataService.findByUser(user));
@@ -87,7 +87,7 @@ public class RecordController {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
 
-        byte[] userId = cipherService.processBlock(true, appSession.getSessionKey(), appSession.getUser().getId().toString().getBytes());
+        byte[] userId = cipherService.processBlockAES256(true, appSession.getSessionKey(), appSession.getUser().getId().toString().getBytes());
         UserIdForm form = new UserIdForm(new BigInteger(userId).toString(16));
         return ResponseEntity.status(HttpStatus.OK)
                 .body(form);

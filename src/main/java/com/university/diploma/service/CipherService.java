@@ -17,20 +17,20 @@ import java.util.Map;
 @Scope("prototype")
 public class CipherService {
 
-    protected BlockCipher cipher = new AESEngine();
+    protected BlockCipher aes256 = new AESEngine();
 
-    public byte[] processBlock(boolean forEncryption, String keyString, byte[] text) {
+    public byte[] processBlockAES256(boolean forEncryption, String keyString, byte[] text) {
         byte[] key = new BigInteger(keyString, 16).toByteArray();
         if (forEncryption && Math.floorMod(text.length, 16) != 0) {
             text = addPadding(text);
         }
 
-        cipher.init(forEncryption, new KeyParameter(key));
+        aes256.init(forEncryption, new KeyParameter(key));
 
         byte[] out = new byte[text.length];
         int index = 0;
         while (index < text.length) {
-            cipher.processBlock(text, index, out, index);
+            aes256.processBlock(text, index, out, index);
             index += 16;
         }
 
@@ -41,16 +41,16 @@ public class CipherService {
     }
 
     public UserSignUpDto decryptSignUpForm(SignUpForm form, String key) {
-        String username = new String(processBlock(false, key, form.getUsername()));
-        String salt = new String(processBlock(false, key, form.getSalt()));
-        String verifier = new String(processBlock(false, key, form.getVerifier()));
+        String username = new String(processBlockAES256(false, key, form.getUsername()));
+        String salt = new String(processBlockAES256(false, key, form.getSalt()));
+        String verifier = new String(processBlockAES256(false, key, form.getVerifier()));
         return new UserSignUpDto(username, salt, verifier);
     }
 
     public Map<String, String> decryptBody(Map<String, byte[]> body, String key) {
         Map<String, String> decryptedBody = new HashMap<>();
         for (Map.Entry<String, byte[]> entry : body.entrySet()) {
-            String value = new String(processBlock(false, key, entry.getValue()));
+            String value = new String(processBlockAES256(false, key, entry.getValue()));
             decryptedBody.put(entry.getKey(), value);
         }
 

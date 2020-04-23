@@ -66,8 +66,8 @@ public class UserController {
         details.setEmphaticKeyA(body.get("emphaticKeyA"));
         srpService.computeEmphaticKeyB(details);
 
-        byte[] salt = cipherService.processBlock(true, details.getAuthenticationKey(), details.getSalt().getBytes());
-        byte[] emphaticKeyB = cipherService.processBlock(true, details.getAuthenticationKey(), details.getEmphaticKeyB().getBytes());
+        byte[] salt = cipherService.processBlockAES256(true, details.getAuthenticationKey(), details.getSalt().getBytes());
+        byte[] emphaticKeyB = cipherService.processBlockAES256(true, details.getAuthenticationKey(), details.getEmphaticKeyB().getBytes());
         ServerAuthenticationForm form = new ServerAuthenticationForm(details.getAuthenticationKey(), new BigInteger(salt).toString(16),
                 new BigInteger(emphaticKeyB).toString(16));
 
