@@ -43,7 +43,7 @@ public class UserController {
     @CrossOrigin(origins = "http://localhost:3000")
     @PostMapping(value = "/sign-up")
     public ResponseEntity<?> signUpSubmit(@RequestBody SignUpForm form) {
-        UserSignUpDto userSignUpDto = cipherService.decryptSignUpForm(form, ANONYMOUS_SESSION_KEY.getBytes());
+        UserSignUpDto userSignUpDto = cipherService.decryptSignUpForm(form, ANONYMOUS_SESSION_KEY);
         if (userDataService.create(userSignUpDto)) {
             return new ResponseEntity<>(HttpStatus.OK);
         } else {
@@ -55,7 +55,7 @@ public class UserController {
     @PostMapping("/sign-in-authentication")
     @ResponseBody
     public ResponseEntity<ServerAuthenticationForm> signInAuthentication(@RequestBody Map<String, byte[]> encryptedBody) {
-        Map<String, String> body = cipherService.decryptBody(encryptedBody, ANONYMOUS_SESSION_KEY.getBytes());
+        Map<String, String> body = cipherService.decryptBody(encryptedBody, ANONYMOUS_SESSION_KEY);
         User user = userDataService.findUserByUsername(body.get("username"));
         if (user == null || body.get("emphaticKeyA") == null) {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
@@ -66,8 +66,8 @@ public class UserController {
         details.setEmphaticKeyA(body.get("emphaticKeyA"));
         srpService.computeEmphaticKeyB(details);
 
-        byte[] salt = cipherService.processBytes(details.getAuthenticationKey().getBytes(), details.getSalt().getBytes());
-        byte[] emphaticKeyB = cipherService.processBytes(details.getAuthenticationKey().getBytes(), details.getEmphaticKeyB().getBytes());
+        byte[] salt = cipherService.processBlock(true, details.getAuthenticationKey(), details.getSalt().getBytes());
+        byte[] emphaticKeyB = cipherService.processBlock(true, details.getAuthenticationKey(), details.getEmphaticKeyB().getBytes());
         ServerAuthenticationForm form = new ServerAuthenticationForm(details.getAuthenticationKey(), new BigInteger(salt).toString(16),
                 new BigInteger(emphaticKeyB).toString(16));
 
@@ -81,7 +81,7 @@ public class UserController {
                                                        @RequestHeader(value = AUTHENTICATION_KEY_HEADER,
                                                                defaultValue = ANONYMOUS_SESSION_KEY) String authenticationKey) {
         AppSession appSession = appSessionBean.getAppSessionByAuthenticationKey(authenticationKey);
-        Map<String, String> body = cipherService.decryptBody(encryptedBody, authenticationKey.getBytes());
+        Map<String, String> body = cipherService.decryptBody(encryptedBody, authenticationKey);
         if (appSession == null || appSession.getUser() == null || body.get("clientCheckValue") == null) {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }

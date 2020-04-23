@@ -2,12 +2,13 @@ package com.university.diploma.service;
 
 import com.university.diploma.dto.UserSignUpDto;
 import com.university.diploma.form.SignUpForm;
-import org.bouncycastle.crypto.StreamCipher;
-import org.bouncycastle.crypto.engines.RC4Engine;
+import org.bouncycastle.crypto.BlockCipher;
+import org.bouncycastle.crypto.engines.AESEngine;
 import org.bouncycastle.crypto.params.KeyParameter;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
+import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -15,70 +16,78 @@ import java.util.Map;
 @Component
 @Scope("prototype")
 public class CipherService {
-    protected StreamCipher cipher = new RC4Engine();
 
-    public byte[] processBytes(boolean forEncryption, byte[] key, byte[] text) {
+    protected BlockCipher cipher = new AESEngine();
+
+    public byte[] processBlock(boolean forEncryption, String keyString, byte[] text) {
+        byte[] key = new BigInteger(keyString, 16).toByteArray();
+        if (forEncryption && Math.floorMod(text.length, 16) != 0) {
+            text = addPadding(text);
+        }
+
         cipher.init(forEncryption, new KeyParameter(key));
+
         byte[] out = new byte[text.length];
-        cipher.processBytes(text, 0, text.length, out, 0);
+        int index = 0;
+        while (index < text.length) {
+            cipher.processBlock(text, index, out, index);
+            index += 16;
+        }
+
+        if (!forEncryption) {
+            out = removePadding(out);
+        }
         return out;
     }
 
-    public UserSignUpDto decryptSignUpForm(SignUpForm form, byte[] key) {
-        String username = new String(processBytes(key, form.getUsername()));
-        String salt = new String(processBytes(key, form.getSalt()));
-        String verifier = new String(processBytes(key, form.getVerifier()));
+    public UserSignUpDto decryptSignUpForm(SignUpForm form, String key) {
+        String username = new String(processBlock(false, key, form.getUsername()));
+        String salt = new String(processBlock(false, key, form.getSalt()));
+        String verifier = new String(processBlock(false, key, form.getVerifier()));
         return new UserSignUpDto(username, salt, verifier);
     }
 
-    public Map<String, String> decryptBody(Map<String, byte[]> body, byte[] key) {
+    public Map<String, String> decryptBody(Map<String, byte[]> body, String key) {
         Map<String, String> decryptedBody = new HashMap<>();
         for (Map.Entry<String, byte[]> entry : body.entrySet()) {
-            String value = new String(processBytes(key, entry.getValue()));
+            String value = new String(processBlock(false, key, entry.getValue()));
             decryptedBody.put(entry.getKey(), value);
         }
 
         return decryptedBody;
     }
 
-    public byte[] processBytes(byte[] key, byte[] text) {
-        if (key.length > 64) {
-            key = Arrays.copyOfRange(key, 1, key.length);
-        }
-        if (key.length < 1 || key.length > 256) {
-            throw new IllegalArgumentException(
-                    "key must be between 1 and 256 bytes");
-        } else {
-            final byte[] S = new byte[256];
-            final byte[] T = new byte[256];
-            int keylen = key.length;
-            byte x;
-            for (int i = 0; i < 256; i++) {
-                S[i] = (byte) i;
-                T[i] = key[i % keylen];
-            }
-            int j = 0;
-            for (int i = 0; i < 256; i++) {
-                j = (j + S[i] + T[i]) & 0xFF;
-                S[i] ^= S[j];
-                S[j] ^= S[i];
-                S[i] ^= S[j];
-            }
+    // ISO/IEC 7816-4
+    protected byte[] addPadding(byte[] text) {
+        int length = text.length;
 
-            final byte[] ciphertext = new byte[text.length];
-            int i = 0, k, t;
-            j = 0;
-            for (int counter = 0; counter < text.length; counter++) {
-                i = (i + 1) & 0xFF;
-                j = (j + S[i]) & 0xFF;
-                S[i] ^= S[j];
-                S[j] ^= S[i];
-                S[i] ^= S[j];
-                t = (S[i] + S[j]) & 0xFF;
-                k = S[t];
-                ciphertext[counter] = (byte) (text[counter] ^ k);
-            }
-            return ciphertext;
+        int padding = 16 - Math.floorMod(length, 16);
+        byte[] paddingArray = new byte[padding];
+        paddingArray[0] = Byte.parseByte("80");
+        if (padding > 1) {
+            Arrays.fill(paddingArray, 1, padding - 1, Byte.parseByte("00"));
         }
+
+        byte[] result = Arrays.copyOf(text, length + padding);
+        System.arraycopy(paddingArray, 0, result, length, padding);
+        return result;
+    }
+
+    // ISO/IEC 7816-4
+    protected byte[] removePadding(byte[] text) {
+        int padding = 0;
+        int index = text.length - 1;
+        while (text[index] == Byte.parseByte("00")) {
+            padding++;
+            index--;
+        }
+
+        if (text[index] == Byte.parseByte("80")) {
+            padding++;
+        } else {
+            padding = 0;
+        }
+
+        return Arrays.copyOfRange(text, 0, text.length - padding);
     }
 }
