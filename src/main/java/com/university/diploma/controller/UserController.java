@@ -43,7 +43,7 @@ public class UserController {
     @CrossOrigin(origins = "http://localhost:3000")
     @PostMapping(value = "/sign-up")
     public ResponseEntity<?> signUpSubmit(@RequestBody SignUpForm form) {
-        UserSignUpDto userSignUpDto = cipherService.decryptSignUpForm(form, ANONYMOUS_SESSION_KEY);
+        UserSignUpDto userSignUpDto = cipherService.decryptSignUpFormRSA(form);
         if (userDataService.create(userSignUpDto)) {
             return new ResponseEntity<>(HttpStatus.OK);
         } else {
@@ -55,7 +55,7 @@ public class UserController {
     @PostMapping("/sign-in-authentication")
     @ResponseBody
     public ResponseEntity<ServerAuthenticationForm> signInAuthentication(@RequestBody Map<String, byte[]> encryptedBody) {
-        Map<String, String> body = cipherService.decryptBody(encryptedBody, ANONYMOUS_SESSION_KEY);
+        Map<String, String> body = cipherService.decryptBodyRSA(encryptedBody);
         User user = userDataService.findUserByUsername(body.get("username"));
         if (user == null || body.get("emphaticKeyA") == null) {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
@@ -66,9 +66,10 @@ public class UserController {
         details.setEmphaticKeyA(body.get("emphaticKeyA"));
         srpService.computeEmphaticKeyB(details);
 
-        byte[] salt = cipherService.processBlockAES256(true, details.getAuthenticationKey(), details.getSalt().getBytes());
-        byte[] emphaticKeyB = cipherService.processBlockAES256(true, details.getAuthenticationKey(), details.getEmphaticKeyB().getBytes());
-        ServerAuthenticationForm form = new ServerAuthenticationForm(details.getAuthenticationKey(), new BigInteger(salt).toString(16),
+        byte[] salt = cipherService.processBlockRSA(true, details.getSalt().getBytes());
+        byte[] emphaticKeyB = cipherService.processBlockRSA(true, details.getEmphaticKeyB().getBytes());
+        byte[] authenticationKey = cipherService.processBlockRSA(true, details.getAuthenticationKey().getBytes());
+        ServerAuthenticationForm form = new ServerAuthenticationForm(new BigInteger(authenticationKey).toString(16), new BigInteger(salt).toString(16),
                 new BigInteger(emphaticKeyB).toString(16));
 
         return ResponseEntity.status(HttpStatus.OK)
@@ -81,8 +82,12 @@ public class UserController {
                                                        @RequestHeader(value = AUTHENTICATION_KEY_HEADER,
                                                                defaultValue = ANONYMOUS_SESSION_KEY) String authenticationKey) {
         AppSession appSession = appSessionBean.getAppSessionByAuthenticationKey(authenticationKey);
-        Map<String, String> body = cipherService.decryptBody(encryptedBody, authenticationKey);
-        if (appSession == null || appSession.getUser() == null || body.get("clientCheckValue") == null) {
+        if (appSession == null || appSession.getUser() == null) {
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
+
+        Map<String, String> body = cipherService.decryptBodyRSA(encryptedBody);
+        if (body.get("clientCheckValue") == null) {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
 
@@ -98,7 +103,8 @@ public class UserController {
         appSession.setAuthenticationDetails(null);
         appSession.setSessionKey(sessionKey);
         appSession.setSessionId(srpService.computeSessionId(clientCheckValue, serverCheckValue, sessionKey));
+        byte[] serverCheckValueBytes = cipherService.processBlockRSA(true, serverCheckValue.getBytes());
         return ResponseEntity.status(HttpStatus.OK)
-                .body(new ServerCheckForm(serverCheckValue));
+                .body(new ServerCheckForm(new BigInteger(serverCheckValueBytes).toString(16)));
     }
 }
