@@ -15,18 +15,18 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.math.BigInteger;
 import java.util.Map;
 import java.util.Objects;
 
-import static com.university.diploma.session.AppSessionsBean.ANONYMOUS_SESSION_KEY;
-import static com.university.diploma.session.AppSessionsBean.AUTHENTICATION_KEY_HEADER;
+import static com.university.diploma.session.AppSessionsBean.ANONYMOUS_SESSION_ID;
+import static com.university.diploma.session.AppSessionsBean.AUTHENTICATION_SESSION_ID_COOKIE;
 
 @Controller
 public class UserController {
@@ -51,7 +51,7 @@ public class UserController {
         }
     }
 
-    @CrossOrigin(origins = "http://localhost:3000")
+    @CrossOrigin(origins = "http://localhost:3000", allowCredentials = "true")
     @PostMapping("/sign-in-authentication")
     @ResponseBody
     public ResponseEntity<ServerAuthenticationForm> signInAuthentication(@RequestBody Map<String, byte[]> encryptedBody) {
@@ -68,19 +68,19 @@ public class UserController {
 
         byte[] salt = cipherService.processBlockRSA(true, details.getSalt().getBytes());
         byte[] emphaticKeyB = cipherService.processBlockRSA(true, details.getEmphaticKeyB().getBytes());
-        byte[] authenticationKey = cipherService.processBlockRSA(true, details.getAuthenticationKey().getBytes());
-        ServerAuthenticationForm form = new ServerAuthenticationForm(new BigInteger(authenticationKey).toString(16), new BigInteger(salt).toString(16),
+        ServerAuthenticationForm form = new ServerAuthenticationForm(new BigInteger(salt).toString(16),
                 new BigInteger(emphaticKeyB).toString(16));
 
         return ResponseEntity.status(HttpStatus.OK)
+                .header("Set-Cookie", AUTHENTICATION_SESSION_ID_COOKIE + "=" + details.getAuthenticationKey())
                 .body(form);
     }
 
-    @CrossOrigin(origins = "http://localhost:3000", allowedHeaders = {AUTHENTICATION_KEY_HEADER, "Accept", "Content-Type"})
+    @CrossOrigin(origins = "http://localhost:3000", allowCredentials = "true")
     @PostMapping("/sign-in-check")
     public ResponseEntity<ServerCheckForm> signInCheck(@RequestBody Map<String, byte[]> encryptedBody,
-                                                       @RequestHeader(value = AUTHENTICATION_KEY_HEADER,
-                                                               defaultValue = ANONYMOUS_SESSION_KEY) String authenticationKey) {
+                                                       @CookieValue(value = AUTHENTICATION_SESSION_ID_COOKIE,
+                                                               defaultValue = ANONYMOUS_SESSION_ID) String authenticationKey) {
         AppSession appSession = appSessionBean.getAppSessionByAuthenticationKey(authenticationKey);
         if (appSession == null || appSession.getUser() == null) {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
