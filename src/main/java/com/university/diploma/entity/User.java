@@ -26,9 +26,6 @@ public class User {
     @Column(name = "USERNAME", length = 64, nullable = false)
     private String username;
 
-    @Column(name = "PASSWORD", length = 256, nullable = false)
-    private String password;
-
     @Column(name = "VERIFIER", length = 2048)
     private String verifier;
 
@@ -57,9 +54,8 @@ public class User {
     public User() {
     }
 
-    public User(String username, String password) {
+    public User(String username) {
         this.username = username;
-        this.password = password;
     }
 
     public Long getId() {
@@ -76,14 +72,6 @@ public class User {
 
     public void setUsername(String username) {
         this.username = username;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
     }
 
     public String getVerifier() {

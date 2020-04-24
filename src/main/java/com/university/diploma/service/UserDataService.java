@@ -64,10 +64,9 @@ public class UserDataService implements DataService<User> {
         return container.findAll();
     }
 
-    public boolean create(String username, String password) {
+    public boolean create(String username) {
         User user = new User();
         user.setUsername(username);
-        user.setPassword(password);
 
         User savedUser = userRepository.save(user);
         container.addValue(savedUser.getId(), savedUser);
@@ -77,7 +76,6 @@ public class UserDataService implements DataService<User> {
     public boolean create(UserSignUpDto userDto) {
         User user = new User();
         user.setUsername(userDto.getUsername());
-        user.setPassword(userDto.getUsername());
         user.setVerifier(userDto.getVerifier());
         user.setSalt(userDto.getSalt());
 

@@ -70,9 +70,7 @@ public class RecordController {
 
         User user = appSession.getUser();
         byte[] username = cipherService.processBlockAES256(true, appSession.getSessionKey(), user.getUsername().getBytes());
-        byte[] password = cipherService.processBlockAES256(true, appSession.getSessionKey(), user.getPassword().getBytes());
         UserProfileForm form = new UserProfileForm(new BigInteger(username).toString(16),
-                new BigInteger(password).toString(16),
                 recordDataService.findByUser(user));
         return ResponseEntity.status(HttpStatus.OK)
                 .body(form);

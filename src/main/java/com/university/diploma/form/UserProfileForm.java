@@ -6,12 +6,10 @@ import java.util.List;
 
 public class UserProfileForm {
     private final String username;
-    private final String password;
     private final List<Record> records;
 
-    public UserProfileForm(String username, String password, List<Record> records) {
+    public UserProfileForm(String username, List<Record> records) {
         this.username = username;
-        this.password = password;
         this.records = records;
     }
 
@@ -21,9 +19,5 @@ public class UserProfileForm {
 
     public String getUsername() {
         return username;
-    }
-
-    public String getPassword() {
-        return password;
     }
 }
