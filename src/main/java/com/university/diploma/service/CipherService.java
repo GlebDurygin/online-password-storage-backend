@@ -133,7 +133,7 @@ public class CipherService {
         return decryptedBody;
     }
 
-    // ISO/IEC 7816-4
+    // ISO/IEC 10118-1
     protected byte[] addPadding(byte[] text, int maxPadding) {
         int length = text.length;
 
@@ -149,7 +149,7 @@ public class CipherService {
         return result;
     }
 
-    // ISO/IEC 7816-4
+    // ISO/IEC 10118-1
     protected byte[] removePadding(byte[] text) {
         int padding = 0;
         int index = text.length - 1;
